@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Ordenes{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>Ordenes</h1>
+  <a class="button" href="{% url 'orden_crear' %}">Nueva orden</a>
+</div>
+<form class="toolbar" method="get">
+  <input name="q" value="{{ q }}" placeholder="Buscar cliente, SKU o descripcion">
+  <button type="submit">Buscar</button>
+</form>
+<table>
+  <thead><tr><th>Orden</th><th>Cliente</th><th>Fecha</th><th>Estado</th><th>Total</th><th>Pagado</th><th>Saldo</th></tr></thead>
+  <tbody>
+    {% for orden in ordenes %}
+    <tr>
+      <td><a href="{{ orden.get_absolute_url }}">#{{ orden.id }}</a></td>
+      <td>{{ orden.cliente.nombre }}</td>
+      <td>{{ orden.fecha|date:"d/m/Y" }}</td>
+      <td><span class="status">{{ orden.get_estado_display }}</span></td>
+      <td>${{ orden.total_final|floatformat:2 }}</td>
+      <td>${{ orden.total_pagado|floatformat:2 }}</td>
+      <td><span class="status {% if orden.pagado_completo %}paid{% else %}pending{% endif %}">${{ orden.saldo_pendiente|floatformat:2 }}</span></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">No hay ordenes registradas.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

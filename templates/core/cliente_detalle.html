@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ cliente.nombre }}{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <h1>{{ cliente.nombre }}</h1>
+    <p>{{ cliente.telefono|default:"Sin telefono" }}</p>
+  </div>
+  <a class="button" href="{% url 'orden_crear' %}">Nueva orden</a>
+</div>
+{% if cliente.notas %}<div class="card">{{ cliente.notas|linebreaks }}</div>{% endif %}
+<section class="section">
+  <h2>Ordenes</h2>
+  <table>
+    <thead><tr><th>Orden</th><th>Fecha</th><th>Estado</th><th>Total</th><th>Pagado</th><th>Saldo</th></tr></thead>
+    <tbody>
+      {% for orden in cliente.ordenes.all %}
+      <tr>
+        <td><a href="{{ orden.get_absolute_url }}">#{{ orden.id }}</a></td>
+        <td>{{ orden.fecha|date:"d/m/Y" }}</td>
+        <td>{{ orden.get_estado_display }}</td>
+        <td>${{ orden.total_final|floatformat:2 }}</td>
+        <td>${{ orden.total_pagado|floatformat:2 }}</td>
+        <td>${{ orden.saldo_pendiente|floatformat:2 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">Este cliente todavia no tiene ordenes.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

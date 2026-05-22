@@ -1,0 +1,38 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Importaciones{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">Importaciones</div>
+      <nav class="nav">
+        <a href="{% url 'dashboard' %}">Dashboard</a>
+        <a href="{% url 'ordenes' %}">Ordenes</a>
+        <a href="{% url 'clientes' %}">Clientes</a>
+        <a href="{% url 'caja' %}">Caja</a>
+        <a href="{% url 'admin:index' %}">Admin</a>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="logout-button" type="submit">Salir</button>
+        </form>
+      </nav>
+    </aside>
+    <main class="content">
+      {% if messages %}
+        <ul class="messages">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>
