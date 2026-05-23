@@ -63,6 +63,56 @@
   background: #e4f4f3;
 }
 
+.detail-status-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 280px) auto minmax(160px, 1fr);
+  gap: 14px;
+  align-items: end;
+  padding: 16px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.detail-status-panel span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.detail-status-panel strong {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+}
+
+.detail-status-panel label {
+  margin: 0;
+}
+
+.detail-status-panel button {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.detail-status-panel p {
+  min-height: 20px;
+  margin: 0 0 9px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.detail-status-ok {
+  color: var(--ok);
+}
+
+.detail-status-error {
+  color: var(--danger);
+}
+
 .detail-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -239,6 +289,7 @@
 }
 
 @media (max-width: 1100px) {
+  .detail-status-panel,
   .detail-metrics,
   .detail-form-grid {
     grid-template-columns: 1fr;

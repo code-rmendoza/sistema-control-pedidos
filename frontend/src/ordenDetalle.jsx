@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./ordenDetalle.css";
 
@@ -52,7 +52,25 @@ function ProductImage({ item }) {
   return <img className="detail-product-image" src={item.imagen} alt={item.descripcion} />;
 }
 
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop().split(";").shift();
+  }
+  return "";
+}
+
 function OrdenDetalle({ data }) {
+  const [estado, setEstado] = useState(data.estado);
+  const [estadoDisplay, setEstadoDisplay] = useState(data.estadoDisplay);
+  const [savedEstado, setSavedEstado] = useState(data.estado);
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const selectedEstado = useMemo(
+    () => data.estados.find((item) => item.value === estado),
+    [data.estados, estado],
+  );
   const saldoTone = data.pagadoCompleto ? "paid" : "pending";
   const metrics = [
     { label: "Total", value: money.format(Number(data.totalFinal)), tone: "income" },
@@ -63,6 +81,33 @@ function OrdenDetalle({ data }) {
     { label: "Ganancia real", value: money.format(Number(data.gananciaReal)), tone: "profit" },
   ];
 
+  const saveEstado = async () => {
+    setSavingStatus(true);
+    setStatusMessage("");
+    try {
+      const response = await fetch(data.urls.cambiarEstado, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: JSON.stringify({ estado }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "No se pudo actualizar el estado.");
+      }
+      setEstado(payload.estado);
+      setSavedEstado(payload.estado);
+      setEstadoDisplay(payload.estadoDisplay);
+      setStatusMessage("Estado actualizado.");
+    } catch (error) {
+      setStatusMessage(error.message);
+    } finally {
+      setSavingStatus(false);
+    }
+  };
+
   return (
     <div className="detail-app">
       <header className="detail-header">
@@ -71,7 +116,7 @@ function OrdenDetalle({ data }) {
           <h1>Orden #{data.id}</h1>
           <p>
             <a href={data.clienteUrl}>{data.cliente}</a>
-            <span>{data.estadoDisplay}</span>
+            <span>{estadoDisplay}</span>
             <span>{data.fechaDisplay}</span>
           </p>
         </div>
@@ -80,6 +125,27 @@ function OrdenDetalle({ data }) {
           <a className="detail-action" href={data.urls.pdf}>Reporte PDF</a>
         </div>
       </header>
+
+      <section className="detail-status-panel" aria-label="Cambio rapido de estado">
+        <div>
+          <span>Estado actual</span>
+          <strong>{selectedEstado ? selectedEstado.label : estadoDisplay}</strong>
+        </div>
+        <label>
+          <span>Cambiar estado</span>
+          <select value={estado} onChange={(event) => setEstado(event.target.value)}>
+            {data.estados.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </select>
+        </label>
+        <button type="button" onClick={saveEstado} disabled={savingStatus || estado === savedEstado}>
+          {savingStatus ? "Guardando..." : "Actualizar estado"}
+        </button>
+        <p className={statusMessage.includes("actualizado") ? "detail-status-ok" : "detail-status-error"}>
+          {statusMessage}
+        </p>
+      </section>
 
       <section className="detail-metrics" aria-label="Resumen financiero">
         {metrics.map((metric) => (

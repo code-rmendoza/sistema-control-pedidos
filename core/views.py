@@ -463,7 +463,12 @@ def orden_detalle(request, pk):
             "editar": reverse("orden_editar", args=[orden.id]),
             "pdf": reverse("reporte_cliente_pdf", args=[orden.id]),
             "ordenes": reverse("ordenes"),
+            "cambiarEstado": reverse("orden_cambiar_estado", args=[orden.id]),
         },
+        "estados": [
+            {"value": value, "label": label}
+            for value, label in Orden.Estado.choices
+        ],
         "items": [item_payload(item) for item in orden.items.all()],
         "pagos": [pago_payload(pago) for pago in orden.pagos.all()],
     }
@@ -472,6 +477,28 @@ def orden_detalle(request, pk):
         "pago_form": pago_form,
         "item_form": item_form,
         "orden_detalle_payload": orden_detalle_payload,
+    })
+
+
+@login_required
+def orden_cambiar_estado(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "Metodo no permitido."}, status=405)
+    orden = get_object_or_404(Orden, pk=pk)
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Solicitud invalida."}, status=400)
+    nuevo_estado = payload.get("estado")
+    estados_validos = {value for value, _label in Orden.Estado.choices}
+    if nuevo_estado not in estados_validos:
+        return JsonResponse({"ok": False, "error": "Estado invalido."}, status=400)
+    orden.estado = nuevo_estado
+    orden.save(update_fields=["estado", "actualizado"])
+    return JsonResponse({
+        "ok": True,
+        "estado": orden.estado,
+        "estadoDisplay": orden.get_estado_display(),
     })
 
 

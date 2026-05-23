@@ -11,6 +11,7 @@ urlpatterns = [
     path("ordenes/nueva/", views.orden_crear, name="orden_crear"),
     path("ordenes/extraer-imagen/", views.extraer_imagen_producto, name="extraer_imagen_producto"),
     path("ordenes/<int:pk>/", views.orden_detalle, name="orden_detalle"),
+    path("ordenes/<int:pk>/estado/", views.orden_cambiar_estado, name="orden_cambiar_estado"),
     path("ordenes/<int:pk>/editar/", views.orden_editar, name="orden_editar"),
     path("ordenes/<int:pk>/items/agregar/", views.item_agregar, name="item_agregar"),
     path("ordenes/<int:pk>/pagos/agregar/", views.pago_agregar, name="pago_agregar"),
