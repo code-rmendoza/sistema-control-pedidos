@@ -10,20 +10,7 @@
   <div class="card">Cargando orden...</div>
 </div>
 
-<section class="detail-form-grid section">
-  <div class="card detail-form-card">
-    <h2>Agregar producto</h2>
-    <form method="post" enctype="multipart/form-data" action="{% url 'item_agregar' orden.id %}">
-      {% csrf_token %}
-      <div class="form-grid">
-        {% for field in item_form %}
-        <div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>
-        {% endfor %}
-      </div>
-      <button type="submit">Agregar producto</button>
-    </form>
-  </div>
-
+<section class="detail-payment-section section">
   <div class="card detail-form-card">
     <h2>Registrar pago</h2>
     <form method="post" action="{% url 'pago_agregar' orden.id %}">
