@@ -733,7 +733,7 @@ def reporte_cliente_pdf(request, pk):
 
     header = Table([
         [
-            Paragraph("Importaciones", styles["BrandTitle"]),
+            Paragraph("Estefy Fashion", styles["BrandTitle"]),
             Paragraph(f"Pedido #{orden.pk}", styles["BrandTitle"]),
         ],
         [
@@ -814,11 +814,6 @@ def reporte_cliente_pdf(request, pk):
     ]))
     story.extend([
         summary_table,
-        Spacer(1, 14),
-        Paragraph(
-            "Este reporte muestra precios finales al cliente. Costos internos, referencias de proveedor y ganancias no se incluyen.",
-            styles["Muted"],
-        ),
     ])
     doc.build(story)
     buffer.seek(0)
