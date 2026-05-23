@@ -60,6 +60,41 @@ class ImportacionesTests(TestCase):
         self.assertEqual(movimiento.tipo, MovimientoCaja.Tipo.INGRESO)
         self.assertEqual(movimiento.monto, Decimal("12.50"))
 
+    def test_edit_payment_updates_cash_income(self):
+        self.http.post(reverse("pago_agregar", args=[self.orden.pk]), {
+            "fecha": date.today().isoformat(),
+            "monto": "12.50",
+            "metodo": "Zelle",
+            "nota": "Inicial",
+        })
+        pago = Pago.objects.get()
+        response = self.http.post(reverse("pago_editar", args=[pago.pk]), {
+            "fecha": date.today().isoformat(),
+            "monto": "18.75",
+            "metodo": "Pago movil",
+            "nota": "Ajustado",
+        })
+        self.assertRedirects(response, self.orden.get_absolute_url())
+        pago.refresh_from_db()
+        movimiento = pago.movimiento_caja
+        self.assertEqual(pago.monto, Decimal("18.75"))
+        self.assertEqual(movimiento.monto, Decimal("18.75"))
+        self.assertEqual(movimiento.fecha, pago.fecha)
+        self.assertIn("Orden", movimiento.descripcion)
+
+    def test_delete_payment_deletes_cash_income(self):
+        self.http.post(reverse("pago_agregar", args=[self.orden.pk]), {
+            "fecha": date.today().isoformat(),
+            "monto": "12.50",
+            "metodo": "Zelle",
+            "nota": "Inicial",
+        })
+        pago = Pago.objects.get()
+        response = self.http.post(reverse("pago_eliminar", args=[pago.pk]))
+        self.assertRedirects(response, self.orden.get_absolute_url())
+        self.assertEqual(Pago.objects.count(), 0)
+        self.assertEqual(MovimientoCaja.objects.count(), 0)
+
     def test_client_report_pdf_hides_internal_costs(self):
         response = self.http.get(reverse("reporte_cliente_pdf", args=[self.orden.pk]))
         self.assertEqual(response.status_code, 200)

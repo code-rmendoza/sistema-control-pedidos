@@ -267,6 +267,38 @@
   border: 0;
 }
 
+.detail-payment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detail-payment-actions a,
+.detail-payment-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-payment-actions a {
+  color: var(--brand-dark);
+  background: #e4f4f3;
+}
+
+.detail-payment-actions form {
+  margin: 0;
+}
+
+.detail-payment-actions button {
+  color: var(--danger);
+  background: #fee4e2;
+}
+
 .detail-empty {
   padding: 18px 20px;
   color: var(--muted);

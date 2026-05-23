@@ -16,5 +16,7 @@ urlpatterns = [
     path("ordenes/<int:pk>/items/agregar/", views.item_agregar, name="item_agregar"),
     path("ordenes/<int:pk>/pagos/agregar/", views.pago_agregar, name="pago_agregar"),
     path("ordenes/<int:pk>/reporte.pdf", views.reporte_cliente_pdf, name="reporte_cliente_pdf"),
+    path("pagos/<int:pk>/editar/", views.pago_editar, name="pago_editar"),
+    path("pagos/<int:pk>/eliminar/", views.pago_eliminar, name="pago_eliminar"),
     path("caja/", views.caja, name="caja"),
 ]

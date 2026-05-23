@@ -203,6 +203,7 @@ function OrdenDetalle({ data }) {
                 <th>Monto</th>
                 <th>Metodo</th>
                 <th>Nota</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -213,11 +214,28 @@ function OrdenDetalle({ data }) {
                     <td>{money.format(Number(pago.monto))}</td>
                     <td>{pago.metodo || "-"}</td>
                     <td>{pago.nota || "-"}</td>
+                    <td>
+                      <div className="detail-payment-actions">
+                        <a href={pago.urls.editar}>Editar</a>
+                        <form
+                          method="post"
+                          action={pago.urls.eliminar}
+                          onSubmit={(event) => {
+                            if (!window.confirm("Eliminar este pago tambien eliminara su ingreso de caja. Continuar?")) {
+                              event.preventDefault();
+                            }
+                          }}
+                        >
+                          <input type="hidden" name="csrfmiddlewaretoken" value={data.csrfToken} />
+                          <button type="submit">Eliminar</button>
+                        </form>
+                      </div>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="4">Sin pagos registrados.</td>
+                  <td colSpan="5">Sin pagos registrados.</td>
                 </tr>
               )}
             </tbody>

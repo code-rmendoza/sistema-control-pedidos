@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.middleware.csrf import get_token
 from django.db.models import Q, Sum
 from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -244,7 +245,32 @@ def pago_payload(pago):
         "monto": decimal_payload(pago.monto),
         "metodo": pago.metodo or "",
         "nota": pago.nota or "",
+        "urls": {
+            "editar": reverse("pago_editar", args=[pago.id]),
+            "eliminar": reverse("pago_eliminar", args=[pago.id]),
+        },
     }
+
+
+def sincronizar_pago_caja(pago):
+    descripcion = f"Cobro a {pago.orden.cliente.nombre} - Orden #{pago.orden.pk}"
+    movimiento, _created = MovimientoCaja.objects.get_or_create(
+        pago=pago,
+        defaults={
+            "fecha": pago.fecha,
+            "tipo": MovimientoCaja.Tipo.INGRESO,
+            "categoria": MovimientoCaja.Categoria.COBRO_CLIENTE,
+            "descripcion": descripcion,
+            "monto": pago.monto,
+        },
+    )
+    movimiento.fecha = pago.fecha
+    movimiento.tipo = MovimientoCaja.Tipo.INGRESO
+    movimiento.categoria = MovimientoCaja.Categoria.COBRO_CLIENTE
+    movimiento.descripcion = descripcion
+    movimiento.monto = pago.monto
+    movimiento.save(update_fields=["fecha", "tipo", "categoria", "descripcion", "monto"])
+    return movimiento
 
 
 def movimiento_payload(movimiento):
@@ -455,6 +481,7 @@ def orden_detalle(request, pk):
     orden_detalle_payload = {
         **orden_payload(orden),
         "clienteUrl": orden.cliente.get_absolute_url(),
+        "csrfToken": get_token(request),
         "inicialSugerida": decimal_payload(orden.inicial_sugerida),
         "gananciaEstimada": decimal_payload(orden.ganancia_estimada),
         "gananciaReal": decimal_payload(orden.ganancia_real),
@@ -535,15 +562,39 @@ def pago_agregar(request, pk):
         pago = form.save(commit=False)
         pago.orden = orden
         pago.save()
-        MovimientoCaja.objects.create(
-            fecha=pago.fecha,
-            tipo=MovimientoCaja.Tipo.INGRESO,
-            categoria=MovimientoCaja.Categoria.COBRO_CLIENTE,
-            descripcion=f"Cobro a {orden.cliente.nombre} - Orden #{orden.pk}",
-            monto=pago.monto,
-            pago=pago,
-        )
+        sincronizar_pago_caja(pago)
         messages.success(request, "Pago registrado y agregado a caja.")
+    return redirect(orden)
+
+
+@login_required
+def pago_editar(request, pk):
+    pago = get_object_or_404(Pago.objects.select_related("orden__cliente"), pk=pk)
+    form = PagoForm(request.POST or None, instance=pago)
+    if request.method == "POST" and form.is_valid():
+        pago = form.save()
+        sincronizar_pago_caja(pago)
+        messages.success(request, "Pago actualizado y caja sincronizada.")
+        return redirect(pago.orden)
+    return render(request, "core/form.html", {
+        "form": form,
+        "title": f"Editar pago - Orden #{pago.orden_id}",
+        "button": "Guardar pago",
+    })
+
+
+@login_required
+def pago_eliminar(request, pk):
+    if request.method != "POST":
+        return redirect("ordenes")
+    pago = get_object_or_404(Pago.objects.select_related("orden"), pk=pk)
+    orden = pago.orden
+    try:
+        pago.movimiento_caja.delete()
+    except MovimientoCaja.DoesNotExist:
+        pass
+    pago.delete()
+    messages.success(request, "Pago eliminado y caja sincronizada.")
     return redirect(orden)
 
 
