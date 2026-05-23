@@ -189,5 +189,11 @@ class ImportacionesTests(TestCase):
         response = self.http.get(reverse("reporte_cliente_pdf", args=[self.orden.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
+        content = b"".join(response.streaming_content)
+        self.assertIn(b"Pedido", content)
+        self.assertNotIn(b"costo_estimado", content)
+        self.assertNotIn(b"costo_real", content)
+        self.assertNotIn(b"Ganancia", content)
+        self.assertNotIn(b"Shein EEUU", content)
 
 # Create your tests here.
