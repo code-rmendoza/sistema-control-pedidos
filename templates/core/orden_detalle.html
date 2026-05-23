@@ -1,79 +1,31 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Orden #{{ orden.id }}{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{% static 'frontend/ordenDetalle.css' %}">
+{% endblock %}
 {% block content %}
-<div class="topbar">
-  <div>
-    <h1>Orden #{{ orden.id }}</h1>
-    <p>{{ orden.cliente.nombre }} · {{ orden.get_estado_display }} · {{ orden.fecha|date:"d/m/Y" }}</p>
-  </div>
-  <div class="toolbar">
-    <a class="button light" href="{% url 'orden_editar' orden.id %}">Editar</a>
-    <a class="button" href="{% url 'reporte_cliente_pdf' orden.id %}">Reporte PDF</a>
-  </div>
+{{ orden_detalle_payload|json_script:"orden-detalle-data" }}
+<div id="orden-detalle-root">
+  <div class="card">Cargando orden...</div>
 </div>
 
-<section class="grid">
-  <div class="card"><div class="metric-label">Total</div><div class="metric-value">${{ orden.total_final|floatformat:2 }}</div></div>
-  <div class="card"><div class="metric-label">Inicial sugerida</div><div class="metric-value">${{ orden.inicial_sugerida|floatformat:2 }}</div></div>
-  <div class="card"><div class="metric-label">Pagado</div><div class="metric-value">${{ orden.total_pagado|floatformat:2 }}</div></div>
-  <div class="card"><div class="metric-label">Saldo</div><div class="metric-value">${{ orden.saldo_pendiente|floatformat:2 }}</div></div>
-  <div class="card"><div class="metric-label">Ganancia estimada</div><div class="metric-value">${{ orden.ganancia_estimada|floatformat:2 }}</div></div>
-  <div class="card"><div class="metric-label">Ganancia real</div><div class="metric-value">${{ orden.ganancia_real|floatformat:2 }}</div></div>
-</section>
+<section class="detail-form-grid section">
+  <div class="card detail-form-card">
+    <h2>Agregar producto</h2>
+    <form method="post" enctype="multipart/form-data" action="{% url 'item_agregar' orden.id %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        {% for field in item_form %}
+        <div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>
+        {% endfor %}
+      </div>
+      <button type="submit">Agregar producto</button>
+    </form>
+  </div>
 
-<section class="section">
-  <h2>Productos</h2>
-  <table>
-    <thead><tr><th>Imagen</th><th>Descripcion</th><th>SKU</th><th>Tienda</th><th>Refs.</th><th>Costo est.</th><th>Costo real</th><th>Final</th><th>Rent.</th></tr></thead>
-    <tbody>
-      {% for item in orden.items.all %}
-      <tr>
-        <td>
-          {% if item.imagen %}
-            <img class="item-image" src="{{ item.imagen.url }}" alt="{{ item.descripcion }}">
-          {% elif item.imagen_url %}
-            <img class="item-image" src="{{ item.imagen_url }}" alt="{{ item.descripcion }}">
-          {% else %}
-            -
-          {% endif %}
-        </td>
-        <td>{{ item.descripcion }}</td>
-        <td>{{ item.sku|default:"-" }}</td>
-        <td>{{ item.get_tienda_display }} / {{ item.get_proveedor_version_display }}</td>
-        <td>
-          EEUU: {% if item.precio_shein_eeuu %}${{ item.precio_shein_eeuu|floatformat:2 }}{% else %}-{% endif %}<br>
-          Esp: {% if item.precio_shein_espana %}${{ item.precio_shein_espana|floatformat:2 }}{% else %}-{% endif %}<br>
-          Ven: {% if item.precio_shein_venezuela %}${{ item.precio_shein_venezuela|floatformat:2 }}{% else %}-{% endif %}<br>
-          Col: {% if item.precio_shein_colombia %}${{ item.precio_shein_colombia|floatformat:2 }}{% else %}-{% endif %}
-        </td>
-        <td>${{ item.costo_estimado|floatformat:2 }}</td>
-        <td>{% if item.costo_real %}${{ item.costo_real|floatformat:2 }}{% else %}-{% endif %}</td>
-        <td>${{ item.precio_final|floatformat:2 }}</td>
-        <td>{% if item.rentabilidad_real %}{{ item.rentabilidad_real }}%{% else %}-{% endif %}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="9">Agrega al menos un producto.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
-
-<section class="section card">
-  <h2>Agregar producto</h2>
-  <form method="post" enctype="multipart/form-data" action="{% url 'item_agregar' orden.id %}">
-    {% csrf_token %}
-    <div class="form-grid">
-      {% for field in item_form %}
-      <div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>
-      {% endfor %}
-    </div>
-    <button type="submit">Agregar producto</button>
-  </form>
-</section>
-
-<section class="section">
-  <h2>Pagos</h2>
-  <div class="card">
+  <div class="card detail-form-card">
+    <h2>Registrar pago</h2>
     <form method="post" action="{% url 'pago_agregar' orden.id %}">
       {% csrf_token %}
       <div class="form-grid">
@@ -84,15 +36,8 @@
       <button type="submit">Registrar pago</button>
     </form>
   </div>
-  <table class="section">
-    <thead><tr><th>Fecha</th><th>Monto</th><th>Metodo</th><th>Nota</th></tr></thead>
-    <tbody>
-      {% for pago in orden.pagos.all %}
-      <tr><td>{{ pago.fecha|date:"d/m/Y" }}</td><td>${{ pago.monto|floatformat:2 }}</td><td>{{ pago.metodo|default:"-" }}</td><td>{{ pago.nota|default:"-" }}</td></tr>
-      {% empty %}
-      <tr><td colspan="4">Sin pagos registrados.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{% static 'frontend/ordenDetalle.js' %}"></script>
 {% endblock %}

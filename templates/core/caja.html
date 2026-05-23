@@ -1,16 +1,16 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Caja{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{% static 'frontend/caja.css' %}">
+{% endblock %}
 {% block content %}
-<div class="topbar">
-  <h1>Caja</h1>
+{{ caja_payload|json_script:"caja-data" }}
+<div id="caja-root">
+  <div class="card">Cargando caja...</div>
 </div>
-<section class="grid">
-  <div class="card"><div class="metric-label">Ingresos</div><div class="metric-value">${{ ingresos|floatformat:2 }}</div></div>
-  <div class="card"><div class="metric-label">Egresos</div><div class="metric-value">${{ egresos|floatformat:2 }}</div></div>
-  <div class="card"><div class="metric-label">Saldo</div><div class="metric-value">${{ saldo|floatformat:2 }}</div></div>
-</section>
 
-<section class="section card">
+<section class="section card cash-form-card">
   <h2>Nuevo movimiento</h2>
   <form method="post">
     {% csrf_token %}
@@ -22,24 +22,7 @@
     <button type="submit">Guardar movimiento</button>
   </form>
 </section>
-
-<section class="section">
-  <h2>Movimientos</h2>
-  <table>
-    <thead><tr><th>Fecha</th><th>Tipo</th><th>Categoria</th><th>Descripcion</th><th>Monto</th></tr></thead>
-    <tbody>
-      {% for mov in movimientos %}
-      <tr>
-        <td>{{ mov.fecha|date:"d/m/Y" }}</td>
-        <td>{{ mov.get_tipo_display }}</td>
-        <td>{{ mov.get_categoria_display }}</td>
-        <td>{{ mov.descripcion }}</td>
-        <td>${{ mov.monto|floatformat:2 }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="5">Sin movimientos de caja.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{% static 'frontend/caja.js' %}"></script>
 {% endblock %}

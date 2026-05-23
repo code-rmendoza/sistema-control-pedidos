@@ -1,4 +1,6 @@
 .venv/
+node_modules/
+.pnpm-store/
 __pycache__/
 *.py[cod]
 db.sqlite3

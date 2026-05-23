@@ -1,0 +1,180 @@
+.react-dashboard {
+  display: grid;
+  gap: 22px;
+}
+
+.react-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 28px;
+  min-height: 172px;
+  color: white;
+  background:
+    linear-gradient(120deg, rgba(16, 24, 40, 0.94), rgba(17, 100, 102, 0.86)),
+    url("https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1600&q=80");
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.react-hero p {
+  margin: 0 0 8px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.react-hero h1 {
+  color: white;
+  font-size: 34px;
+}
+
+.react-primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  color: #101828;
+  background: #f6c453;
+  border-radius: 6px;
+  font-weight: 800;
+}
+
+.react-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.react-metric {
+  display: grid;
+  gap: 10px;
+  min-height: 118px;
+  padding: 18px;
+  background: white;
+  border: 1px solid var(--line);
+  border-left: 4px solid #667085;
+  border-radius: 8px;
+  box-shadow: 0 18px 45px rgba(16, 24, 40, 0.06);
+}
+
+.react-metric span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.react-metric strong {
+  align-self: end;
+  color: var(--ink);
+  font-size: 25px;
+}
+
+.react-metric--income,
+.react-metric--cash,
+.react-metric--profit {
+  border-left-color: var(--ok);
+}
+
+.react-metric--pending {
+  border-left-color: #d18b00;
+}
+
+.react-metric--expense {
+  border-left-color: var(--danger);
+}
+
+.react-metric--count {
+  border-left-color: var(--brand);
+}
+
+.react-panel {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 18px 45px rgba(16, 24, 40, 0.06);
+}
+
+.react-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.react-panel__header h2,
+.react-panel__header p {
+  margin: 0;
+}
+
+.react-panel__header p {
+  margin-top: 5px;
+  color: var(--muted);
+}
+
+.react-panel__header a {
+  font-weight: 800;
+}
+
+.react-table-wrap {
+  overflow-x: auto;
+}
+
+.react-table {
+  border: 0;
+}
+
+.react-table th {
+  background: #f2f5f9;
+}
+
+.react-status,
+.react-payment {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.react-status {
+  color: #2f4f4f;
+  background: #e4f4f3;
+}
+
+.react-payment--paid {
+  color: var(--ok);
+  background: #dcfae6;
+}
+
+.react-payment--pending {
+  color: #7a4b00;
+  background: #fff4d6;
+}
+
+@media (max-width: 1100px) {
+  .react-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .react-hero,
+  .react-panel__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .react-metrics {
+    grid-template-columns: 1fr;
+  }
+}

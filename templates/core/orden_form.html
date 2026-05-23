@@ -1,40 +1,142 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ title }}{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{% static 'css/order-form.css' %}">
+{% endblock %}
 {% block content %}
-<div class="topbar">
-  <h1>{{ title }}</h1>
-</div>
-<form class="card" method="post" enctype="multipart/form-data">
-  {% csrf_token %}
-  <div class="form-grid">
-    {% for field in form %}
-      <div class="field">
-        {{ field.label_tag }}
-        {{ field }}
-        {{ field.errors }}
+<div class="order-form-page">
+  <header class="order-form-hero">
+    <div>
+      <a href="{% url 'ordenes' %}">Ordenes</a>
+      <h1>{{ title }}</h1>
+      <p>Datos del cliente, estado del pedido y productos de la orden.</p>
+    </div>
+    <div class="order-form-summary" aria-label="Resumen calculado">
+      <div>
+        <span>Total</span>
+        <strong data-order-total>$0.00</strong>
       </div>
-    {% endfor %}
-  </div>
-
-  <h2>Productos</h2>
-  {{ formset.management_form }}
-  {% for item_form in formset %}
-    <div class="card section">
-      {{ item_form.id }}
-      <div class="form-grid">
-        {% for field in item_form.visible_fields %}
-          <div class="field">
-            {{ field.label_tag }}
-            {{ field }}
-            {{ field.errors }}
-          </div>
-        {% endfor %}
+      <div>
+        <span>Costo estimado</span>
+        <strong data-order-cost>$0.00</strong>
+      </div>
+      <div>
+        <span>Ganancia</span>
+        <strong data-order-profit>$0.00</strong>
       </div>
     </div>
-  {% endfor %}
-  <div class="toolbar">
-    <button type="submit">Guardar orden</button>
-    <a class="button secondary" href="{% url 'ordenes' %}">Volver</a>
-  </div>
-</form>
+  </header>
+
+  <form class="order-form-layout" method="post" enctype="multipart/form-data" data-order-form data-image-fetch-url="{% url 'extraer_imagen_producto' %}">
+    {% csrf_token %}
+    <section class="order-form-main">
+      <div class="order-panel">
+        <div class="order-panel__head">
+          <h2>Informacion de la orden</h2>
+        </div>
+        <div class="order-main-grid">
+          <div class="field">{{ form.cliente.label_tag }}{{ form.cliente }}{{ form.cliente.errors }}</div>
+          <div class="field">{{ form.estado.label_tag }}{{ form.estado }}{{ form.estado.errors }}</div>
+          <div class="field">{{ form.inicial_sugerida.label_tag }}{{ form.inicial_sugerida }}{{ form.inicial_sugerida.errors }}</div>
+          <div class="field order-field-wide">{{ form.notas.label_tag }}{{ form.notas }}{{ form.notas.errors }}</div>
+        </div>
+      </div>
+
+      <div class="order-panel">
+        <div class="order-panel__head">
+          <div>
+            <h2>Productos</h2>
+            <p>Agrega uno o varios productos antes de guardar la orden.</p>
+          </div>
+          <button class="button light" type="button" data-add-product>Agregar otro producto</button>
+        </div>
+        {{ formset.management_form }}
+        <div class="order-items">
+          {% for item_form in formset %}
+          <article class="order-item-card" data-order-item>
+            {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="order-item-card__head">
+              <div>
+                <span>Producto {{ forloop.counter }}</span>
+                <strong data-item-title>{{ item_form.descripcion.value|default:"Nuevo producto" }}</strong>
+              </div>
+              {% if item_form.DELETE %}
+              <label class="order-delete">
+                {{ item_form.DELETE }}
+                <span>Eliminar</span>
+              </label>
+              {% endif %}
+            </div>
+
+            <div class="order-item-grid">
+              <div class="order-preview" data-image-preview data-initial-image="{% if item_form.instance.imagen %}{{ item_form.instance.imagen.url }}{% elif item_form.instance.imagen_url %}{{ item_form.instance.imagen_url }}{% endif %}">
+                <span>Sin imagen</span>
+              </div>
+              <div class="order-item-fields">
+                <div class="field order-field-wide">{{ item_form.descripcion.label_tag }}{{ item_form.descripcion }}{{ item_form.descripcion.errors }}</div>
+                <div class="field">{{ item_form.sku.label_tag }}{{ item_form.sku }}{{ item_form.sku.errors }}</div>
+                <div class="field">{{ item_form.tienda.label_tag }}{{ item_form.tienda }}{{ item_form.tienda.errors }}</div>
+                <div class="field">{{ item_form.proveedor_version.label_tag }}{{ item_form.proveedor_version }}{{ item_form.proveedor_version.errors }}</div>
+                <div class="field order-field-wide order-url-field">{{ item_form.link.label_tag }}{{ item_form.link }}{{ item_form.link.errors }}</div>
+                <div class="order-media-grid order-field-wide">
+                  <div class="field order-image-upload">{{ item_form.imagen.label_tag }}{{ item_form.imagen }}{{ item_form.imagen.errors }}</div>
+                  <div class="field order-url-field">
+                    {{ item_form.imagen_url.label_tag }}
+                    <div class="order-image-url-row">
+                      {{ item_form.imagen_url }}
+                      <button class="button light" type="button" data-fetch-product-image>Traer imagen</button>
+                    </div>
+                    <div class="order-fetch-status" data-fetch-status></div>
+                    {{ item_form.imagen_url.errors }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="order-money-grid">
+              <div class="field">{{ item_form.precio_final.label_tag }}{{ item_form.precio_final }}{{ item_form.precio_final.errors }}</div>
+              <div class="field">{{ item_form.costo_estimado.label_tag }}{{ item_form.costo_estimado }}{{ item_form.costo_estimado.errors }}</div>
+              <div class="field">{{ item_form.costo_real.label_tag }}{{ item_form.costo_real }}{{ item_form.costo_real.errors }}</div>
+              <div class="order-item-result">
+                <span>Ganancia estimada</span>
+                <strong data-item-profit>$0.00</strong>
+              </div>
+            </div>
+
+            <details class="order-reference-box">
+              <summary>Precios de referencia Shein</summary>
+              <div class="order-reference-grid">
+                <div class="field">{{ item_form.precio_shein_eeuu.label_tag }}{{ item_form.precio_shein_eeuu }}{{ item_form.precio_shein_eeuu.errors }}</div>
+                <div class="field">{{ item_form.precio_shein_espana.label_tag }}{{ item_form.precio_shein_espana }}{{ item_form.precio_shein_espana.errors }}</div>
+                <div class="field">{{ item_form.precio_shein_venezuela.label_tag }}{{ item_form.precio_shein_venezuela }}{{ item_form.precio_shein_venezuela.errors }}</div>
+                <div class="field">{{ item_form.precio_shein_colombia.label_tag }}{{ item_form.precio_shein_colombia }}{{ item_form.precio_shein_colombia.errors }}</div>
+              </div>
+            </details>
+          </article>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <aside class="order-sticky">
+      <div class="order-panel">
+        <h2>Guardar</h2>
+        <dl>
+          <div><dt>Productos activos</dt><dd data-order-count>0</dd></div>
+          <div><dt>Total</dt><dd data-order-total>$0.00</dd></div>
+          <div><dt>Inicial sugerida</dt><dd data-order-initial>$0.00</dd></div>
+          <div><dt>Ganancia est.</dt><dd data-order-profit>$0.00</dd></div>
+        </dl>
+        <div class="order-actions">
+          <button type="submit">Guardar orden</button>
+          <a class="button secondary" href="{% url 'ordenes' %}">Volver</a>
+        </div>
+      </div>
+    </aside>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/order-form.js' %}"></script>
 {% endblock %}

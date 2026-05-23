@@ -1,27 +1,15 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Clientes{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{% static 'frontend/clientes.css' %}">
+{% endblock %}
 {% block content %}
-<div class="topbar">
-  <h1>Clientes</h1>
-  <a class="button" href="{% url 'cliente_crear' %}">Nuevo cliente</a>
+{{ clientes_payload|json_script:"clientes-data" }}
+<div id="clientes-root">
+  <div class="card">Cargando clientes...</div>
 </div>
-<form class="toolbar" method="get">
-  <input name="q" value="{{ q }}" placeholder="Buscar por nombre o telefono">
-  <button type="submit">Buscar</button>
-</form>
-<table>
-  <thead><tr><th>Nombre</th><th>Telefono</th><th>Ordenes</th><th>Registro</th></tr></thead>
-  <tbody>
-    {% for cliente in clientes %}
-    <tr>
-      <td><a href="{{ cliente.get_absolute_url }}">{{ cliente.nombre }}</a></td>
-      <td>{{ cliente.telefono|default:"-" }}</td>
-      <td>{{ cliente.ordenes.count }}</td>
-      <td>{{ cliente.creado|date:"d/m/Y" }}</td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="4">No hay clientes registrados.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{% static 'frontend/clientes.js' %}"></script>
 {% endblock %}

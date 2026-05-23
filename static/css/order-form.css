@@ -1,0 +1,396 @@
+.order-form-page {
+  display: grid;
+  gap: 22px;
+}
+
+.order-form-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 26px;
+  color: white;
+  background: linear-gradient(120deg, #101828, #116466);
+  border-radius: 8px;
+}
+
+.order-form-hero a {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.order-form-hero h1 {
+  color: white;
+  font-size: 34px;
+}
+
+.order-form-hero p {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.order-form-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+  min-width: min(480px, 100%);
+}
+
+.order-form-summary div {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+}
+
+.order-form-summary span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.order-form-summary strong {
+  color: white;
+  font-size: 18px;
+}
+
+.order-form-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+  align-items: start;
+}
+
+.order-form-main,
+.order-items {
+  display: grid;
+  gap: 18px;
+}
+
+.order-panel,
+.order-item-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.order-panel {
+  padding: 18px;
+}
+
+.order-panel__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.order-panel__head h2,
+.order-panel__head p {
+  margin: 0;
+}
+
+.order-panel__head p {
+  margin-top: 5px;
+  color: var(--muted);
+}
+
+.order-panel__head .button {
+  flex: 0 0 auto;
+}
+
+.order-main-grid,
+.order-item-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.order-field-wide {
+  grid-column: 1 / -1;
+}
+
+.order-url-field input {
+  max-width: 100%;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-url-field input:focus {
+  text-overflow: clip;
+}
+
+.order-item-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.order-item-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 16px 18px;
+  background: #f7f9fc;
+  border-bottom: 1px solid var(--line);
+}
+
+.order-item-card__head span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.order-item-card__head strong {
+  font-size: 18px;
+}
+
+.order-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--danger);
+}
+
+.order-delete input {
+  width: auto;
+  min-height: auto;
+}
+
+.order-item-grid {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px;
+}
+
+.order-preview {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  color: var(--muted);
+  background: #f2f5f9;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.order-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.order-money-grid,
+.order-reference-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 0 18px 18px;
+}
+
+.order-item-result {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-height: 68px;
+  padding: 10px;
+  background: #f2f5f9;
+  border-radius: 8px;
+}
+
+.order-item-result span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.order-item-result strong {
+  font-size: 18px;
+}
+
+.order-media-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.85fr) minmax(280px, 1.15fr);
+  gap: 14px;
+}
+
+.order-image-upload {
+  min-width: 0;
+}
+
+.order-image-upload a {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--brand);
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.order-image-upload input[type="checkbox"] {
+  width: auto;
+  min-height: auto;
+  margin: 0 6px 0 0;
+}
+
+.order-image-upload input[type="file"] {
+  min-height: auto;
+  padding: 8px;
+  font-size: 13px;
+}
+
+.order-image-upload br {
+  display: block;
+  content: "";
+  margin-top: 8px;
+}
+
+.order-image-url-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.order-image-url-row .button {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.order-fetch-status {
+  min-height: 18px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.order-fetch-status.is-error {
+  color: var(--danger);
+}
+
+.order-fetch-status.is-ok {
+  color: var(--ok);
+}
+
+.order-reference-box {
+  padding: 0 18px 18px;
+}
+
+.order-reference-box summary {
+  margin-bottom: 14px;
+  color: var(--brand);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.order-reference-grid {
+  padding: 0;
+}
+
+.order-sticky {
+  position: sticky;
+  top: 24px;
+}
+
+.order-sticky h2 {
+  margin-bottom: 16px;
+}
+
+.order-sticky dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.order-sticky dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.order-sticky dt {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.order-sticky dd {
+  margin: 0;
+  font-weight: 800;
+}
+
+.order-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.order-actions .button,
+.order-actions button {
+  width: 100%;
+}
+
+.order-item-card.is-deleted {
+  opacity: 0.52;
+}
+
+@media (max-width: 1180px) {
+  .order-form-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .order-sticky {
+    position: static;
+  }
+}
+
+@media (max-width: 900px) {
+  .order-form-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .order-panel__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .order-form-summary,
+  .order-main-grid,
+  .order-item-fields,
+  .order-media-grid,
+  .order-money-grid,
+  .order-reference-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-item-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-image-url-row {
+    grid-template-columns: 1fr;
+  }
+}

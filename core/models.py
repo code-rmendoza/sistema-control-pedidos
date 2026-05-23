@@ -96,8 +96,8 @@ class ItemPedido(models.Model):
 
     orden = models.ForeignKey(Orden, on_delete=models.CASCADE, related_name="items")
     imagen = models.ImageField(upload_to="items/", blank=True)
-    imagen_url = models.URLField(blank=True)
-    link = models.URLField(blank=True)
+    imagen_url = models.URLField(max_length=1000, blank=True)
+    link = models.URLField(max_length=1000, blank=True)
     tienda = models.CharField(max_length=32, choices=Tienda.choices, default=Tienda.SHEIN)
     sku = models.CharField(max_length=120, blank=True, db_index=True)
     descripcion = models.CharField(max_length=240)

@@ -1,0 +1,170 @@
+import React from "react";
+import { createRoot } from "react-dom/client";
+import "./ordenDetalle.css";
+
+const money = new Intl.NumberFormat("es-VE", {
+  style: "currency",
+  currency: "USD",
+});
+
+function parseData() {
+  const node = document.getElementById("orden-detalle-data");
+  if (!node) {
+    return null;
+  }
+  return JSON.parse(node.textContent);
+}
+
+function Metric({ label, value, tone = "neutral" }) {
+  return (
+    <article className={`detail-metric detail-metric--${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </article>
+  );
+}
+
+function Money({ value }) {
+  if (value === "") {
+    return "-";
+  }
+  return money.format(Number(value));
+}
+
+function ReferenceList({ referencias }) {
+  const entries = Object.entries(referencias).filter(([, value]) => value);
+  if (!entries.length) {
+    return <span className="detail-muted">Sin refs.</span>;
+  }
+  return (
+    <div className="detail-refs">
+      {entries.map(([label, value]) => (
+        <span key={label}>{label}: {money.format(Number(value))}</span>
+      ))}
+    </div>
+  );
+}
+
+function ProductImage({ item }) {
+  if (!item.imagen) {
+    return <div className="detail-product-image detail-product-image--empty">Sin imagen</div>;
+  }
+  return <img className="detail-product-image" src={item.imagen} alt={item.descripcion} />;
+}
+
+function OrdenDetalle({ data }) {
+  const saldoTone = data.pagadoCompleto ? "paid" : "pending";
+  const metrics = [
+    { label: "Total", value: money.format(Number(data.totalFinal)), tone: "income" },
+    { label: "Inicial sugerida", value: money.format(Number(data.inicialSugerida)), tone: "neutral" },
+    { label: "Pagado", value: money.format(Number(data.totalPagado)), tone: "cash" },
+    { label: "Saldo", value: money.format(Number(data.saldoPendiente)), tone: saldoTone },
+    { label: "Ganancia estimada", value: money.format(Number(data.gananciaEstimada)), tone: "profit" },
+    { label: "Ganancia real", value: money.format(Number(data.gananciaReal)), tone: "profit" },
+  ];
+
+  return (
+    <div className="detail-app">
+      <header className="detail-header">
+        <div>
+          <a className="detail-back" href={data.urls.ordenes}>Ordenes</a>
+          <h1>Orden #{data.id}</h1>
+          <p>
+            <a href={data.clienteUrl}>{data.cliente}</a>
+            <span>{data.estadoDisplay}</span>
+            <span>{data.fechaDisplay}</span>
+          </p>
+        </div>
+        <div className="detail-actions">
+          <a className="detail-action detail-action--light" href={data.urls.editar}>Editar</a>
+          <a className="detail-action" href={data.urls.pdf}>Reporte PDF</a>
+        </div>
+      </header>
+
+      <section className="detail-metrics" aria-label="Resumen financiero">
+        {metrics.map((metric) => (
+          <Metric key={metric.label} {...metric} />
+        ))}
+      </section>
+
+      <section className="detail-panel">
+        <div className="detail-panel__head">
+          <div>
+            <h2>Productos</h2>
+            <p>{data.items.length} productos en esta orden.</p>
+          </div>
+        </div>
+        <div className="detail-products">
+          {data.items.length ? (
+            data.items.map((item) => (
+              <article className="detail-product" key={item.id}>
+                <ProductImage item={item} />
+                <div className="detail-product-main">
+                  <h3>{item.descripcion}</h3>
+                  <p>{item.tienda} / {item.proveedorVersion}</p>
+                  <div className="detail-product-meta">
+                    <span>SKU: {item.sku || "-"}</span>
+                    {item.link ? <a href={item.link} target="_blank" rel="noreferrer">Ver producto</a> : null}
+                  </div>
+                  <ReferenceList referencias={item.referencias} />
+                </div>
+                <div className="detail-product-money">
+                  <span>Costo est. <strong><Money value={item.costoEstimado} /></strong></span>
+                  <span>Costo real <strong><Money value={item.costoReal} /></strong></span>
+                  <span>Final <strong><Money value={item.precioFinal} /></strong></span>
+                  <span>Rent. <strong>{item.rentabilidadReal ? `${item.rentabilidadReal}%` : "-"}</strong></span>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="detail-empty">Agrega al menos un producto.</div>
+          )}
+        </div>
+      </section>
+
+      <section className="detail-panel">
+        <div className="detail-panel__head">
+          <div>
+            <h2>Pagos</h2>
+            <p>{data.pagos.length} pagos registrados.</p>
+          </div>
+        </div>
+        <div className="detail-table-wrap">
+          <table className="detail-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Monto</th>
+                <th>Metodo</th>
+                <th>Nota</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.pagos.length ? (
+                data.pagos.map((pago) => (
+                  <tr key={pago.id}>
+                    <td>{pago.fechaDisplay}</td>
+                    <td>{money.format(Number(pago.monto))}</td>
+                    <td>{pago.metodo || "-"}</td>
+                    <td>{pago.nota || "-"}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4">Sin pagos registrados.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+const data = parseData();
+const root = document.getElementById("orden-detalle-root");
+
+if (data && root) {
+  createRoot(root).render(<OrdenDetalle data={data} />);
+}
