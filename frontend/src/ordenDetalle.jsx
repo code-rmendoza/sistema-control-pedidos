@@ -173,6 +173,21 @@ function OrdenDetalle({ data }) {
                     {item.link ? <a href={item.link} target="_blank" rel="noreferrer">Ver producto</a> : null}
                   </div>
                   <ReferenceList referencias={item.referencias} />
+                  <div className="detail-product-actions">
+                    <a href={item.urls.editar}>Editar</a>
+                    <form
+                      method="post"
+                      action={item.urls.eliminar}
+                      onSubmit={(event) => {
+                        if (!window.confirm("Eliminar este producto de la orden?")) {
+                          event.preventDefault();
+                        }
+                      }}
+                    >
+                      <input type="hidden" name="csrfmiddlewaretoken" value={data.csrfToken} />
+                      <button type="submit">Eliminar</button>
+                    </form>
+                  </div>
                 </div>
                 <div className="detail-product-money">
                   <span>Costo est. <strong><Money value={item.costoEstimado} /></strong></span>

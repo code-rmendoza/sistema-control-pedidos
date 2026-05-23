@@ -220,7 +220,8 @@
 }
 
 .detail-product-meta,
-.detail-refs {
+.detail-refs,
+.detail-product-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -228,16 +229,33 @@
 
 .detail-product-meta span,
 .detail-product-meta a,
-.detail-refs span {
+.detail-refs span,
+.detail-product-actions a,
+.detail-product-actions button {
   display: inline-flex;
   min-height: 26px;
   align-items: center;
   padding: 4px 8px;
-  color: #344054;
-  background: #f2f5f9;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 800;
+}
+
+.detail-product-meta span,
+.detail-product-meta a,
+.detail-refs span,
+.detail-product-actions a {
+  color: #344054;
+  background: #f2f5f9;
+}
+
+.detail-product-actions form {
+  margin: 0;
+}
+
+.detail-product-actions button {
+  color: var(--danger);
+  background: #fee4e2;
 }
 
 .detail-product-money {

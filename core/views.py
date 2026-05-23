@@ -222,6 +222,10 @@ def item_payload(item):
         "sku": item.sku or "",
         "imagen": imagen or item.imagen_url,
         "link": item.link,
+        "urls": {
+            "editar": reverse("item_editar", args=[item.id]),
+            "eliminar": reverse("item_eliminar", args=[item.id]),
+        },
         "tienda": item.get_tienda_display(),
         "proveedorVersion": item.get_proveedor_version_display(),
         "precioFinal": decimal_payload(item.precio_final),
@@ -556,6 +560,32 @@ def item_agregar(request, pk):
         item.orden = orden
         item.save()
         messages.success(request, "Producto agregado.")
+    return redirect(orden)
+
+
+@login_required
+def item_editar(request, pk):
+    item = get_object_or_404(ItemPedido.objects.select_related("orden"), pk=pk)
+    form = ItemPedidoForm(request.POST or None, request.FILES or None, instance=item)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Producto actualizado.")
+        return redirect(item.orden)
+    return render(request, "core/form.html", {
+        "form": form,
+        "title": f"Editar producto - Orden #{item.orden_id}",
+        "button": "Guardar producto",
+    })
+
+
+@login_required
+def item_eliminar(request, pk):
+    if request.method != "POST":
+        return redirect("ordenes")
+    item = get_object_or_404(ItemPedido.objects.select_related("orden"), pk=pk)
+    orden = item.orden
+    item.delete()
+    messages.success(request, "Producto eliminado.")
     return redirect(orden)
 
 

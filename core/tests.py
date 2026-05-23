@@ -151,6 +151,40 @@ class ImportacionesTests(TestCase):
         self.assertEqual(movimiento.tipo, MovimientoCaja.Tipo.INGRESO)
         self.assertEqual(movimiento.monto, Decimal("12.50"))
 
+    def test_edit_item_updates_order_totals(self):
+        item = self.orden.items.first()
+        response = self.http.post(reverse("item_editar", args=[item.pk]), {
+            "imagen_url": "",
+            "link": "",
+            "tienda": ItemPedido.Tienda.SHEIN,
+            "sku": "editado",
+            "descripcion": "Producto editado",
+            "precio_final": "40.00",
+            "costo_estimado": "20.00",
+            "costo_real": "",
+            "precio_shein_eeuu": "",
+            "precio_shein_espana": "",
+            "precio_shein_venezuela": "",
+            "precio_shein_colombia": "",
+            "proveedor_version": ItemPedido.VersionProveedor.EEUU,
+        })
+        self.assertRedirects(response, self.orden.get_absolute_url())
+        item.refresh_from_db()
+        self.assertEqual(item.descripcion, "Producto editado")
+        self.assertEqual(item.precio_final, Decimal("40.00"))
+        self.assertEqual(self.orden.total_final, Decimal("50.00"))
+        self.assertEqual(self.orden.ganancia_estimada, Decimal("25.00"))
+
+    def test_delete_item_updates_order_totals_without_touching_payments(self):
+        Pago.objects.create(orden=self.orden, fecha=date.today(), monto=Decimal("5.00"))
+        item = self.orden.items.first()
+        response = self.http.post(reverse("item_eliminar", args=[item.pk]))
+        self.assertRedirects(response, self.orden.get_absolute_url())
+        self.assertEqual(ItemPedido.objects.count(), 1)
+        self.assertEqual(Pago.objects.count(), 1)
+        self.assertEqual(self.orden.total_final, Decimal("10.00"))
+        self.assertEqual(self.orden.saldo_pendiente, Decimal("5.00"))
+
     def test_client_report_pdf_hides_internal_costs(self):
         response = self.http.get(reverse("reporte_cliente_pdf", args=[self.orden.pk]))
         self.assertEqual(response.status_code, 200)
