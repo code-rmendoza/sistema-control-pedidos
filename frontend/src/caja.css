@@ -159,6 +159,44 @@
   color: var(--danger);
 }
 
+.cash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cash-actions a,
+.cash-actions button,
+.cash-locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cash-actions a {
+  color: var(--brand-dark);
+  background: #e4f4f3;
+}
+
+.cash-actions form {
+  margin: 0;
+}
+
+.cash-actions button {
+  color: var(--danger);
+  background: #fee4e2;
+}
+
+.cash-locked {
+  color: var(--muted);
+  background: #f2f5f9;
+}
+
 .cash-form-card h2 {
   margin-bottom: 16px;
 }

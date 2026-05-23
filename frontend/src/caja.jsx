@@ -137,6 +137,7 @@ function Caja({ data }) {
                 <th>Descripcion</th>
                 <th>Origen</th>
                 <th>Monto</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -151,11 +152,32 @@ function Caja({ data }) {
                     <td className={`cash-amount cash-amount--${movimiento.tipo}`}>
                       {movimiento.tipo === "egreso" ? "-" : "+"}{money.format(Number(movimiento.monto))}
                     </td>
+                    <td>
+                      {movimiento.esPago ? (
+                        <span className="cash-locked">Desde orden</span>
+                      ) : (
+                        <div className="cash-actions">
+                          <a href={movimiento.urls.editar}>Editar</a>
+                          <form
+                            method="post"
+                            action={movimiento.urls.eliminar}
+                            onSubmit={(event) => {
+                              if (!window.confirm("Eliminar este movimiento de caja?")) {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
+                            <input type="hidden" name="csrfmiddlewaretoken" value={data.csrfToken} />
+                            <button type="submit">Eliminar</button>
+                          </form>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6">Sin movimientos que coincidan con los filtros.</td>
+                  <td colSpan="7">Sin movimientos que coincidan con los filtros.</td>
                 </tr>
               )}
             </tbody>

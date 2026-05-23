@@ -19,4 +19,6 @@ urlpatterns = [
     path("pagos/<int:pk>/editar/", views.pago_editar, name="pago_editar"),
     path("pagos/<int:pk>/eliminar/", views.pago_eliminar, name="pago_eliminar"),
     path("caja/", views.caja, name="caja"),
+    path("caja/<int:pk>/editar/", views.movimiento_editar, name="movimiento_editar"),
+    path("caja/<int:pk>/eliminar/", views.movimiento_eliminar, name="movimiento_eliminar"),
 ]

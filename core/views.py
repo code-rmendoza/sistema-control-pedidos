@@ -274,6 +274,7 @@ def sincronizar_pago_caja(pago):
 
 
 def movimiento_payload(movimiento):
+    editable = movimiento.pago_id is None
     return {
         "id": movimiento.id,
         "fecha": movimiento.fecha.isoformat(),
@@ -284,7 +285,11 @@ def movimiento_payload(movimiento):
         "categoriaDisplay": movimiento.get_categoria_display(),
         "descripcion": movimiento.descripcion,
         "monto": decimal_payload(movimiento.monto),
-        "esPago": movimiento.pago_id is not None,
+        "esPago": not editable,
+        "urls": {
+            "editar": reverse("movimiento_editar", args=[movimiento.id]) if editable else "",
+            "eliminar": reverse("movimiento_eliminar", args=[movimiento.id]) if editable else "",
+        },
     }
 
 
@@ -612,6 +617,7 @@ def caja(request):
         "ingresos": decimal_payload(ingresos),
         "egresos": decimal_payload(egresos),
         "saldo": decimal_payload(ingresos - egresos),
+        "csrfToken": get_token(request),
         "movimientos": [movimiento_payload(movimiento) for movimiento in movimientos],
         "tipos": [
             {"value": value, "label": label}
@@ -626,6 +632,37 @@ def caja(request):
         "saldo": ingresos - egresos,
         "caja_payload": caja_payload,
     })
+
+
+@login_required
+def movimiento_editar(request, pk):
+    movimiento = get_object_or_404(MovimientoCaja, pk=pk)
+    if movimiento.pago_id is not None:
+        messages.error(request, "Los movimientos de pagos se editan desde la orden.")
+        return redirect("caja")
+    form = MovimientoCajaForm(request.POST or None, instance=movimiento)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Movimiento de caja actualizado.")
+        return redirect("caja")
+    return render(request, "core/form.html", {
+        "form": form,
+        "title": "Editar movimiento de caja",
+        "button": "Guardar movimiento",
+    })
+
+
+@login_required
+def movimiento_eliminar(request, pk):
+    if request.method != "POST":
+        return redirect("caja")
+    movimiento = get_object_or_404(MovimientoCaja, pk=pk)
+    if movimiento.pago_id is not None:
+        messages.error(request, "Los movimientos de pagos se eliminan desde la orden.")
+        return redirect("caja")
+    movimiento.delete()
+    messages.success(request, "Movimiento de caja eliminado.")
+    return redirect("caja")
 
 
 @login_required

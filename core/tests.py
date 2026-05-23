@@ -95,6 +95,62 @@ class ImportacionesTests(TestCase):
         self.assertEqual(Pago.objects.count(), 0)
         self.assertEqual(MovimientoCaja.objects.count(), 0)
 
+    def test_edit_manual_cash_movement(self):
+        movimiento = MovimientoCaja.objects.create(
+            fecha=date.today(),
+            tipo=MovimientoCaja.Tipo.EGRESO,
+            categoria=MovimientoCaja.Categoria.DELIVERY,
+            descripcion="Delivery",
+            monto=Decimal("5.00"),
+        )
+        response = self.http.post(reverse("movimiento_editar", args=[movimiento.pk]), {
+            "fecha": date.today().isoformat(),
+            "tipo": MovimientoCaja.Tipo.EGRESO,
+            "categoria": MovimientoCaja.Categoria.FLETE,
+            "descripcion": "Flete ajustado",
+            "monto": "8.25",
+        })
+        self.assertRedirects(response, reverse("caja"))
+        movimiento.refresh_from_db()
+        self.assertEqual(movimiento.categoria, MovimientoCaja.Categoria.FLETE)
+        self.assertEqual(movimiento.descripcion, "Flete ajustado")
+        self.assertEqual(movimiento.monto, Decimal("8.25"))
+
+    def test_delete_manual_cash_movement(self):
+        movimiento = MovimientoCaja.objects.create(
+            fecha=date.today(),
+            tipo=MovimientoCaja.Tipo.EGRESO,
+            categoria=MovimientoCaja.Categoria.DELIVERY,
+            descripcion="Delivery",
+            monto=Decimal("5.00"),
+        )
+        response = self.http.post(reverse("movimiento_eliminar", args=[movimiento.pk]))
+        self.assertRedirects(response, reverse("caja"))
+        self.assertEqual(MovimientoCaja.objects.count(), 0)
+
+    def test_payment_cash_movement_cannot_be_managed_from_cash(self):
+        self.http.post(reverse("pago_agregar", args=[self.orden.pk]), {
+            "fecha": date.today().isoformat(),
+            "monto": "12.50",
+            "metodo": "Zelle",
+            "nota": "Inicial",
+        })
+        movimiento = MovimientoCaja.objects.get()
+        edit_response = self.http.post(reverse("movimiento_editar", args=[movimiento.pk]), {
+            "fecha": date.today().isoformat(),
+            "tipo": MovimientoCaja.Tipo.EGRESO,
+            "categoria": MovimientoCaja.Categoria.FLETE,
+            "descripcion": "No debe cambiar",
+            "monto": "8.25",
+        })
+        delete_response = self.http.post(reverse("movimiento_eliminar", args=[movimiento.pk]))
+        movimiento.refresh_from_db()
+        self.assertRedirects(edit_response, reverse("caja"))
+        self.assertRedirects(delete_response, reverse("caja"))
+        self.assertEqual(MovimientoCaja.objects.count(), 1)
+        self.assertEqual(movimiento.tipo, MovimientoCaja.Tipo.INGRESO)
+        self.assertEqual(movimiento.monto, Decimal("12.50"))
+
     def test_client_report_pdf_hides_internal_costs(self):
         response = self.http.get(reverse("reporte_cliente_pdf", args=[self.orden.pk]))
         self.assertEqual(response.status_code, 200)
