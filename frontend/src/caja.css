@@ -29,7 +29,7 @@
 
 .cash-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -71,7 +71,7 @@
 
 .cash-toolbar {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 180px 220px;
+  grid-template-columns: minmax(220px, 1fr) 160px 200px 170px 170px;
   gap: 14px;
   padding: 16px;
   background: white;
@@ -159,6 +159,19 @@
   color: var(--danger);
 }
 
+.cash-running {
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.cash-running--ok {
+  color: var(--ink);
+}
+
+.cash-running--low {
+  color: var(--danger);
+}
+
 .cash-actions {
   display: flex;
   flex-wrap: wrap;
@@ -220,4 +233,27 @@
   .cash-metrics {
     grid-template-columns: 1fr;
   }
+}
+
+.cash-header {
+  color: var(--ink);
+  background: white;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
+  box-shadow: var(--shadow-soft);
+}
+
+.cash-header p {
+  color: var(--muted);
+}
+
+.cash-header h1 {
+  color: var(--ink);
+}
+
+.cash-toolbar,
+.cash-panel,
+.cash-form-card,
+.cash-metric {
+  box-shadow: var(--shadow-soft);
 }

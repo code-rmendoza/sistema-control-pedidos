@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db import models
 from django.db.models import Sum
 from django.urls import reverse
+from django.utils import timezone
 
 
 class Cliente(models.Model):
@@ -32,7 +33,7 @@ class Orden(models.Model):
 
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name="ordenes")
     estado = models.CharField(max_length=32, choices=Estado.choices, default=Estado.COTIZADA)
-    fecha = models.DateField(auto_now_add=True)
+    fecha = models.DateField(default=timezone.localdate)
     inicial_sugerida = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     notas = models.TextField(blank=True)
     creado = models.DateTimeField(auto_now_add=True)
@@ -71,6 +72,17 @@ class Orden(models.Model):
     @property
     def ganancia_real(self):
         return sum((item.ganancia_real for item in self.items.all()), Decimal("0.00"))
+
+    @property
+    def flete_asignado(self):
+        try:
+            return self.envio_asignado.costo_flete_asignado
+        except OrdenEnvio.DoesNotExist:
+            return Decimal("0.00")
+
+    @property
+    def utilidad_real_neta(self):
+        return self.ganancia_real - self.flete_asignado
 
     def save(self, *args, **kwargs):
         creating = self.pk is None
@@ -197,4 +209,69 @@ class MovimientoCaja(models.Model):
     def __str__(self):
         return f"{self.get_tipo_display()} ${self.monto} - {self.descripcion}"
 
-# Create your models here.
+
+class Envio(models.Model):
+    class Estado(models.TextChoices):
+        PREPARANDO = "preparando", "Preparando"
+        EN_TRANSITO = "en_transito", "En transito"
+        RECIBIDO = "recibido", "Recibido"
+        CERRADO = "cerrado", "Cerrado"
+
+    nombre = models.CharField(max_length=160)
+    estado = models.CharField(max_length=32, choices=Estado.choices, default=Estado.PREPARANDO)
+    courier = models.CharField(max_length=120, blank=True)
+    fecha_creado = models.DateTimeField(auto_now_add=True)
+    fecha_salida = models.DateField(null=True, blank=True)
+    fecha_llegada = models.DateField(null=True, blank=True)
+    fecha_pago_flete = models.DateField(null=True, blank=True)
+    periodo_utilidad = models.DateField(default=timezone.localdate)
+    costo_flete = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    notas = models.TextField(blank=True)
+    movimiento_caja = models.OneToOneField(
+        MovimientoCaja,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="envio",
+    )
+
+    class Meta:
+        ordering = ["-fecha_creado", "-id"]
+
+    def __str__(self):
+        return self.nombre
+
+    def save(self, *args, **kwargs):
+        if self.periodo_utilidad:
+            self.periodo_utilidad = self.periodo_utilidad.replace(day=1)
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("envio_detalle", args=[self.pk])
+
+    @property
+    def total_vendido(self):
+        return sum((relacion.orden.total_final for relacion in self.ordenes_envio.all()), Decimal("0.00"))
+
+    @property
+    def costo_productos(self):
+        total = Decimal("0.00")
+        for relacion in self.ordenes_envio.all():
+            total += sum((item.costo_para_real for item in relacion.orden.items.all()), Decimal("0.00"))
+        return total
+
+    @property
+    def utilidad_neta(self):
+        return self.total_vendido - self.costo_productos - self.costo_flete
+
+
+class OrdenEnvio(models.Model):
+    envio = models.ForeignKey(Envio, on_delete=models.CASCADE, related_name="ordenes_envio")
+    orden = models.OneToOneField(Orden, on_delete=models.PROTECT, related_name="envio_asignado")
+    costo_flete_asignado = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+
+    class Meta:
+        ordering = ["orden_id"]
+
+    def __str__(self):
+        return f"{self.envio} - Orden #{self.orden_id}"

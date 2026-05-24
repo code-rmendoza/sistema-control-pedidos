@@ -35,6 +35,8 @@ function TypeBadge({ movimiento }) {
 function Caja({ data }) {
   const [search, setSearch] = useState("");
   const [tipo, setTipo] = useState("todos");
+  const [fechaDesde, setFechaDesde] = useState(data.fechaDesde || "");
+  const [fechaHasta, setFechaHasta] = useState(data.fechaHasta || "");
 
   const categorias = useMemo(() => {
     const seen = new Map();
@@ -51,14 +53,24 @@ function Caja({ data }) {
     return data.movimientos.filter((movimiento) => {
       const matchesTipo = tipo === "todos" || movimiento.tipo === tipo;
       const matchesCategoria = categoria === "todas" || movimiento.categoria === categoria;
+      const matchesDesde = !fechaDesde || movimiento.fecha >= fechaDesde;
+      const matchesHasta = !fechaHasta || movimiento.fecha <= fechaHasta;
       const haystack = `${movimiento.descripcion} ${movimiento.categoriaDisplay} ${movimiento.tipoDisplay}`.toLowerCase();
       const matchesSearch = !term || haystack.includes(term);
-      return matchesTipo && matchesCategoria && matchesSearch;
-    });
-  }, [categoria, data.movimientos, search, tipo]);
+      return matchesTipo && matchesCategoria && matchesDesde && matchesHasta && matchesSearch;
+    }).sort((a, b) => `${a.fecha}-${a.id}`.localeCompare(`${b.fecha}-${b.id}`));
+  }, [categoria, data.movimientos, fechaDesde, fechaHasta, search, tipo]);
 
   const filteredSummary = useMemo(() => {
-    return filtered.reduce(
+    const period = data.movimientos.filter((movimiento) => {
+      const matchesDesde = !fechaDesde || movimiento.fecha >= fechaDesde;
+      const matchesHasta = !fechaHasta || movimiento.fecha <= fechaHasta;
+      return matchesDesde && matchesHasta;
+    });
+    const previous = fechaDesde
+      ? data.movimientos.filter((movimiento) => movimiento.fecha < fechaDesde)
+      : [];
+    const summarize = (items) => items.reduce(
       (acc, movimiento) => {
         const monto = Number(movimiento.monto);
         if (movimiento.tipo === "ingreso") {
@@ -70,7 +82,30 @@ function Caja({ data }) {
       },
       { ingresos: 0, egresos: 0 },
     );
-  }, [filtered]);
+    const visible = summarize(filtered);
+    const periodSummary = summarize(period);
+    const previousSummary = summarize(previous);
+    const saldoInicial = previousSummary.ingresos - previousSummary.egresos;
+    const movimientoPeriodo = periodSummary.ingresos - periodSummary.egresos;
+    return {
+      ...visible,
+      saldoInicial,
+      movimientoPeriodo,
+      saldoFinal: saldoInicial + movimientoPeriodo,
+    };
+  }, [data.movimientos, fechaDesde, fechaHasta, filtered]);
+
+  const ledgerRows = useMemo(() => {
+    let runningBalance = filteredSummary.saldoInicial;
+    return filtered.map((movimiento) => {
+      const monto = Number(movimiento.monto);
+      runningBalance += movimiento.tipo === "ingreso" ? monto : -monto;
+      return {
+        ...movimiento,
+        saldoAcumulado: runningBalance,
+      };
+    });
+  }, [filtered, filteredSummary.saldoInicial]);
 
   return (
     <div className="cash-app">
@@ -82,9 +117,11 @@ function Caja({ data }) {
       </header>
 
       <section className="cash-metrics" aria-label="Resumen de caja">
-        <Metric label="Ingresos" value={money.format(Number(data.ingresos))} tone="income" />
-        <Metric label="Egresos" value={money.format(Number(data.egresos))} tone="expense" />
-        <Metric label="Saldo" value={money.format(Number(data.saldo))} tone={Number(data.saldo) >= 0 ? "cash" : "expense"} />
+        <Metric label="Saldo inicial" value={money.format(filteredSummary.saldoInicial)} tone={filteredSummary.saldoInicial >= 0 ? "cash" : "expense"} />
+        <Metric label="Ingresos periodo" value={money.format(filteredSummary.ingresos)} tone="income" />
+        <Metric label="Egresos periodo" value={money.format(filteredSummary.egresos)} tone="expense" />
+        <Metric label="Diferencia periodo" value={money.format(filteredSummary.movimientoPeriodo)} tone={filteredSummary.movimientoPeriodo >= 0 ? "cash" : "expense"} />
+        <Metric label="Saldo final" value={money.format(filteredSummary.saldoFinal)} tone={filteredSummary.saldoFinal >= 0 ? "cash" : "expense"} />
         <Metric label="Movimientos visibles" value={filtered.length} tone="count" />
       </section>
 
@@ -115,6 +152,14 @@ function Caja({ data }) {
             ))}
           </select>
         </label>
+        <label>
+          <span>Desde</span>
+          <input type="date" value={fechaDesde} onChange={(event) => setFechaDesde(event.target.value)} />
+        </label>
+        <label>
+          <span>Hasta</span>
+          <input type="date" value={fechaHasta} onChange={(event) => setFechaHasta(event.target.value)} />
+        </label>
       </section>
 
       <section className="cash-panel">
@@ -137,24 +182,28 @@ function Caja({ data }) {
                 <th>Descripcion</th>
                 <th>Origen</th>
                 <th>Monto</th>
+                <th>Saldo</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.length ? (
-                filtered.map((movimiento) => (
+              {ledgerRows.length ? (
+                ledgerRows.map((movimiento) => (
                   <tr key={movimiento.id}>
                     <td>{movimiento.fechaDisplay}</td>
                     <td><TypeBadge movimiento={movimiento} /></td>
                     <td>{movimiento.categoriaDisplay}</td>
                     <td>{movimiento.descripcion}</td>
-                    <td>{movimiento.esPago ? "Pago de orden" : "Manual"}</td>
+                    <td>{movimiento.origen}</td>
                     <td className={`cash-amount cash-amount--${movimiento.tipo}`}>
                       {movimiento.tipo === "egreso" ? "-" : "+"}{money.format(Number(movimiento.monto))}
                     </td>
+                    <td className={`cash-running ${movimiento.saldoAcumulado >= 0 ? "cash-running--ok" : "cash-running--low"}`}>
+                      {money.format(movimiento.saldoAcumulado)}
+                    </td>
                     <td>
-                      {movimiento.esPago ? (
-                        <span className="cash-locked">Desde orden</span>
+                      {!movimiento.editable ? (
+                        <span className="cash-locked">{movimiento.esEnvio ? "Desde envio" : "Desde orden"}</span>
                       ) : (
                         <div className="cash-actions">
                           <a href={movimiento.urls.editar}>Editar</a>
@@ -177,7 +226,7 @@ function Caja({ data }) {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7">Sin movimientos que coincidan con los filtros.</td>
+                  <td colSpan="8">Sin movimientos que coincidan con los filtros.</td>
                 </tr>
               )}
             </tbody>

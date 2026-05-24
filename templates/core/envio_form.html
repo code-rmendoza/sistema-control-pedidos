@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Nuevo envio{% endblock %}
+{% block content %}
+<section class="section form-page">
+  <div class="card">
+    <p class="eyebrow">Logistica</p>
+    <h1>Nuevo envio</h1>
+    <p class="muted">Selecciona ordenes compradas, registra el flete total y el sistema lo reparte automaticamente.</p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-grid">
+        {% for field in form %}
+        <div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>
+        {% endfor %}
+      </div>
+      <hr>
+      <h2>Ordenes compradas</h2>
+      {% if ordenes %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Orden</th>
+              <th>Cliente</th>
+              <th>Total</th>
+              <th>Ganancia bruta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for orden in ordenes %}
+            <tr>
+              <td><input type="checkbox" name="ordenes" value="{{ orden.id }}"></td>
+              <td>#{{ orden.id }}</td>
+              <td>{{ orden.cliente }}</td>
+              <td>USD {{ orden.totalFinal }}</td>
+              <td>USD {{ orden.gananciaReal }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p>No hay ordenes en estado Comprada disponibles para enviar.</p>
+      {% endif %}
+      <div class="actions">
+        <button type="submit">Crear envio</button>
+        <a class="button secondary" href="{% url 'envios' %}">Volver</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

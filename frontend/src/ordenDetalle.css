@@ -375,3 +375,38 @@
     aspect-ratio: 4 / 3;
   }
 }
+
+.detail-header {
+  color: var(--ink);
+  background: white;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
+  box-shadow: var(--shadow-soft);
+}
+
+.detail-back,
+.detail-header p {
+  color: var(--muted);
+}
+
+.detail-header h1 {
+  color: var(--ink);
+}
+
+.detail-action {
+  color: #101828;
+  background: var(--accent);
+  border-radius: 8px;
+}
+
+.detail-action--light {
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+}
+
+.detail-status-panel,
+.detail-panel,
+.detail-form-card,
+.detail-metric {
+  box-shadow: var(--shadow-soft);
+}

@@ -11,6 +11,8 @@ export default defineConfig({
         dashboard: "frontend/src/dashboard.jsx",
         ordenes: "frontend/src/ordenes.jsx",
         ordenDetalle: "frontend/src/ordenDetalle.jsx",
+        envios: "frontend/src/envios.jsx",
+        envioDetalle: "frontend/src/envioDetalle.jsx",
         caja: "frontend/src/caja.jsx",
         clientes: "frontend/src/clientes.jsx",
         clienteDetalle: "frontend/src/clienteDetalle.jsx",

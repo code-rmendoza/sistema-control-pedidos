@@ -39,16 +39,20 @@ function SaldoBadge({ paid, value }) {
 function Ordenes({ data }) {
   const [search, setSearch] = useState(data.q || "");
   const [estado, setEstado] = useState("todos");
+  const [fechaDesde, setFechaDesde] = useState(data.fechaDesde || "");
+  const [fechaHasta, setFechaHasta] = useState(data.fechaHasta || "");
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return data.ordenes.filter((orden) => {
       const matchesEstado = estado === "todos" || orden.estado === estado;
+      const matchesDesde = !fechaDesde || orden.fecha >= fechaDesde;
+      const matchesHasta = !fechaHasta || orden.fecha <= fechaHasta;
       const haystack = `${orden.id} ${orden.cliente} ${orden.estadoDisplay}`.toLowerCase();
       const matchesSearch = !term || haystack.includes(term);
-      return matchesEstado && matchesSearch;
+      return matchesEstado && matchesDesde && matchesHasta && matchesSearch;
     });
-  }, [data.ordenes, estado, search]);
+  }, [data.ordenes, estado, fechaDesde, fechaHasta, search]);
 
   const summary = useMemo(() => {
     return filtered.reduce(
@@ -92,6 +96,14 @@ function Ordenes({ data }) {
               <option key={item.value} value={item.value}>{item.label}</option>
             ))}
           </select>
+        </label>
+        <label>
+          <span>Desde</span>
+          <input type="date" value={fechaDesde} onChange={(event) => setFechaDesde(event.target.value)} />
+        </label>
+        <label>
+          <span>Hasta</span>
+          <input type="date" value={fechaHasta} onChange={(event) => setFechaHasta(event.target.value)} />
         </label>
       </section>
 

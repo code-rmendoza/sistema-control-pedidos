@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Cliente, ItemPedido, MovimientoCaja, Orden, Pago, PrecioReferencia
+from .models import Cliente, Envio, ItemPedido, MovimientoCaja, Orden, OrdenEnvio, Pago, PrecioReferencia
 
 
 class ItemPedidoInline(admin.TabularInline):
@@ -37,3 +37,16 @@ class ItemPedidoAdmin(admin.ModelAdmin):
 admin.site.register(PrecioReferencia)
 admin.site.register(Pago)
 admin.site.register(MovimientoCaja)
+
+
+class OrdenEnvioInline(admin.TabularInline):
+    model = OrdenEnvio
+    extra = 0
+
+
+@admin.register(Envio)
+class EnvioAdmin(admin.ModelAdmin):
+    list_display = ("nombre", "estado", "courier", "costo_flete", "fecha_salida", "fecha_pago_flete", "periodo_utilidad", "fecha_llegada")
+    list_filter = ("estado", "courier", "periodo_utilidad")
+    search_fields = ("nombre", "courier")
+    inlines = [OrdenEnvioInline]

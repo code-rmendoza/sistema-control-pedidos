@@ -211,3 +211,33 @@
     grid-template-columns: 1fr;
   }
 }
+
+.client-detail-header {
+  color: var(--ink);
+  background: white;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
+  box-shadow: var(--shadow-soft);
+}
+
+.client-detail-back,
+.client-detail-header p {
+  color: var(--muted);
+}
+
+.client-detail-header h1 {
+  color: var(--ink);
+}
+
+.client-detail-action {
+  color: #101828;
+  background: var(--accent);
+  border-radius: 8px;
+}
+
+.client-detail-toolbar,
+.client-detail-panel,
+.client-detail-notes,
+.client-detail-metric {
+  box-shadow: var(--shadow-soft);
+}

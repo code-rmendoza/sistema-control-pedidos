@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ envio.nombre }}{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{% static 'frontend/envioDetalle.css' %}">
+{% endblock %}
+{% block content %}
+{{ envio_payload|json_script:"envio-detalle-data" }}
+<div id="envio-detalle-root">
+  <div class="card">Cargando envio...</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{% static 'frontend/envioDetalle.js' %}"></script>
+{% endblock %}

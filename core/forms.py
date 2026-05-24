@@ -1,11 +1,18 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import Cliente, ItemPedido, MovimientoCaja, Orden, Pago, PrecioReferencia
+from .models import Cliente, Envio, ItemPedido, MovimientoCaja, Orden, Pago
 
 
 class DateInput(forms.DateInput):
     input_type = "date"
+
+
+class MonthInput(forms.DateInput):
+    input_type = "month"
+
+    def __init__(self, attrs=None):
+        super().__init__(attrs=attrs, format="%Y-%m")
 
 
 class ClienteForm(forms.ModelForm):
@@ -18,9 +25,11 @@ class ClienteForm(forms.ModelForm):
 class OrdenForm(forms.ModelForm):
     class Meta:
         model = Orden
-        fields = ["cliente", "estado", "inicial_sugerida", "notas"]
+        fields = ["cliente", "fecha", "estado", "inicial_sugerida", "notas"]
+        widgets = {"fecha": DateInput()}
         labels = {
             "cliente": "Cliente",
+            "fecha": "Fecha de orden",
             "estado": "Estado",
             "inicial_sugerida": "Inicial sugerida",
             "notas": "Notas internas",
@@ -64,12 +73,6 @@ class ItemPedidoForm(forms.ModelForm):
         }
 
 
-class PrecioReferenciaForm(forms.ModelForm):
-    class Meta:
-        model = PrecioReferencia
-        fields = ["shein_eeuu", "shein_espana", "shein_venezuela", "shein_colombia"]
-
-
 class PagoForm(forms.ModelForm):
     class Meta:
         model = Pago
@@ -90,6 +93,47 @@ class MovimientoCajaForm(forms.ModelForm):
             "descripcion": "Descripcion",
             "monto": "Monto",
         }
+
+
+class EnvioForm(forms.ModelForm):
+    periodo_utilidad = forms.DateField(
+        input_formats=["%Y-%m", "%Y-%m-%d"],
+        widget=MonthInput(),
+        label="Mes contable de utilidad",
+    )
+
+    class Meta:
+        model = Envio
+        fields = [
+            "nombre",
+            "estado",
+            "courier",
+            "fecha_salida",
+            "fecha_llegada",
+            "fecha_pago_flete",
+            "periodo_utilidad",
+            "costo_flete",
+            "notas",
+        ]
+        widgets = {
+            "fecha_salida": DateInput(),
+            "fecha_llegada": DateInput(),
+            "fecha_pago_flete": DateInput(),
+        }
+        labels = {
+            "nombre": "Nombre",
+            "estado": "Estado",
+            "courier": "Courier",
+            "fecha_salida": "Fecha de salida",
+            "fecha_llegada": "Fecha de llegada",
+            "fecha_pago_flete": "Fecha de pago del flete",
+            "costo_flete": "Costo de flete",
+            "notas": "Notas",
+        }
+
+    def clean_periodo_utilidad(self):
+        value = self.cleaned_data["periodo_utilidad"]
+        return value.replace(day=1)
 
 
 ItemFormSet = inlineformset_factory(

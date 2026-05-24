@@ -1,384 +1,39 @@
-import ipaddress
 import json
-import re
-import socket
-from calendar import monthrange
 from datetime import date
 from decimal import Decimal
-from html import unescape
-from html.parser import HTMLParser
-from io import BytesIO
-from urllib.parse import urljoin, urlparse
-from urllib.request import Request, urlopen
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.middleware.csrf import get_token
-from django.db.models import Q, Sum
+from django.db import transaction
+from django.db.models import Q
 from django.http import FileResponse, JsonResponse
+from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from .forms import ClienteForm, ItemFormSet, ItemPedidoForm, MovimientoCajaForm, OrdenForm, PagoForm
-from .models import Cliente, ItemPedido, MovimientoCaja, Orden, Pago
-
-
-class ProductImageParser(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.images = []
-        self._in_json_ld = False
-        self._json_ld_chunks = []
-
-    def handle_starttag(self, tag, attrs):
-        attrs = dict(attrs)
-        if tag == "meta":
-            key = (attrs.get("property") or attrs.get("name") or attrs.get("itemprop") or "").lower()
-            content = attrs.get("content")
-            if key in {"og:image", "og:image:url", "twitter:image", "twitter:image:src", "image"} and content:
-                self.images.append(content)
-        if tag == "link":
-            rel = (attrs.get("rel") or "").lower()
-            href = attrs.get("href")
-            if "image_src" in rel and href:
-                self.images.append(href)
-        if tag in {"img", "source"}:
-            for key in ("src", "data-src", "data-original", "data-lazy", "data-image"):
-                value = attrs.get(key)
-                if value:
-                    self.images.append(value)
-            srcset = attrs.get("srcset") or attrs.get("data-srcset")
-            if srcset:
-                self.images.extend(parse_srcset(srcset))
-        if tag == "script" and (attrs.get("type") or "").lower() == "application/ld+json":
-            self._in_json_ld = True
-            self._json_ld_chunks = []
-
-    def handle_data(self, data):
-        if self._in_json_ld:
-            self._json_ld_chunks.append(data)
-
-    def handle_endtag(self, tag):
-        if tag == "script" and self._in_json_ld:
-            self._in_json_ld = False
-            self._extract_json_images("".join(self._json_ld_chunks))
-
-    def _extract_json_images(self, raw):
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
-            return
-        self._walk_json(data)
-
-    def _walk_json(self, value):
-        if isinstance(value, dict):
-            image = value.get("image")
-            if isinstance(image, str):
-                self.images.append(image)
-            elif isinstance(image, list):
-                self.images.extend(item for item in image if isinstance(item, str))
-            elif isinstance(image, dict) and isinstance(image.get("url"), str):
-                self.images.append(image["url"])
-            for child in value.values():
-                self._walk_json(child)
-        elif isinstance(value, list):
-            for child in value:
-                self._walk_json(child)
-
-
-def parse_srcset(srcset):
-    urls = []
-    for candidate in srcset.split(","):
-        url = candidate.strip().split(" ")[0]
-        if url:
-            urls.append(url)
-    return urls
-
-
-def normalize_scraped_url(raw_url):
-    url = unescape(raw_url.strip().strip("\"'"))
-    url = url.replace("\\/", "/")
-    try:
-        url = bytes(url, "utf-8").decode("unicode_escape")
-    except UnicodeDecodeError:
-        pass
-    return url
-
-
-def extract_image_urls_from_text(html):
-    patterns = [
-        r'https?:\\?/\\?/[^"\'<>\s]+?\.(?:jpg|jpeg|png|webp)(?:\?[^"\'<>\s]*)?',
-        r'//[^"\'<>\s]+?\.(?:jpg|jpeg|png|webp)(?:\?[^"\'<>\s]*)?',
-    ]
-    urls = []
-    for pattern in patterns:
-        urls.extend(re.findall(pattern, html, flags=re.IGNORECASE))
-    return urls
-
-
-def image_score(image_url):
-    parsed = urlparse(image_url)
-    value = image_url.lower()
-    score = 0
-    if parsed.netloc:
-        score += 2
-    if any(token in value for token in ("product", "goods", "main", "large", "zoom", "images3_pi", "ltwebstatic")):
-        score += 6
-    if any(token in value for token in ("logo", "sprite", "icon", "avatar", "placeholder", "loading", "banner")):
-        score -= 8
-    if any(size in value for size in ("405x552", "600x", "800x", "1200x")):
-        score += 2
-    return score
-
-
-def money(value):
-    return value or Decimal("0.00")
-
-
-def decimal_payload(value):
-    return str(money(value).quantize(Decimal("0.01")))
-
-
-def is_safe_public_url(raw_url):
-    parsed = urlparse(raw_url)
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-        return False
-    try:
-        addresses = socket.getaddrinfo(parsed.hostname, None)
-    except socket.gaierror:
-        return False
-    for address in addresses:
-        ip = ipaddress.ip_address(address[4][0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved:
-            return False
-    return True
-
-
-def find_product_image_url(product_url):
-    request = Request(
-        product_url,
-        headers={
-            "User-Agent": "Mozilla/5.0 (compatible; SistemaImport/1.0)",
-            "Accept": "text/html,application/xhtml+xml",
-        },
-    )
-    with urlopen(request, timeout=8) as response:
-        content_type = response.headers.get("Content-Type", "")
-        if "text/html" not in content_type and "application/xhtml" not in content_type:
-            return ""
-        html = response.read(1_500_000).decode("utf-8", errors="ignore")
-
-    parser = ProductImageParser()
-    parser.feed(html)
-    candidates = parser.images + extract_image_urls_from_text(html)
-    normalized = []
-    seen = set()
-    for image_url in candidates:
-        image_url = normalize_scraped_url(image_url)
-        absolute_url = urljoin(product_url, image_url)
-        if absolute_url in seen:
-            continue
-        seen.add(absolute_url)
-        if urlparse(absolute_url).scheme in {"http", "https"}:
-            normalized.append(absolute_url)
-    normalized.sort(key=image_score, reverse=True)
-    if normalized:
-        return normalized[0]
-    return ""
-
-
-def orden_payload(orden):
-    return {
-        "id": orden.id,
-        "cliente": orden.cliente.nombre,
-        "fecha": orden.fecha.isoformat(),
-        "fechaDisplay": orden.fecha.strftime("%d/%m/%Y"),
-        "estado": orden.estado,
-        "estadoDisplay": orden.get_estado_display(),
-        "totalFinal": decimal_payload(orden.total_final),
-        "totalPagado": decimal_payload(orden.total_pagado),
-        "saldoPendiente": decimal_payload(orden.saldo_pendiente),
-        "pagadoCompleto": orden.pagado_completo,
-        "itemsCount": orden.items.count(),
-        "url": orden.get_absolute_url(),
-    }
-
-
-def item_payload(item):
-    imagen = ""
-    if item.imagen:
-        try:
-            imagen = item.imagen.url
-        except ValueError:
-            imagen = ""
-    return {
-        "id": item.id,
-        "descripcion": item.descripcion,
-        "sku": item.sku or "",
-        "imagen": imagen or item.imagen_url,
-        "link": item.link,
-        "urls": {
-            "editar": reverse("item_editar", args=[item.id]),
-            "eliminar": reverse("item_eliminar", args=[item.id]),
-        },
-        "tienda": item.get_tienda_display(),
-        "proveedorVersion": item.get_proveedor_version_display(),
-        "precioFinal": decimal_payload(item.precio_final),
-        "costoEstimado": decimal_payload(item.costo_estimado),
-        "costoReal": decimal_payload(item.costo_real) if item.costo_real is not None else "",
-        "rentabilidadReal": str(item.rentabilidad_real) if item.rentabilidad_real is not None else "",
-        "referencias": {
-            "EEUU": decimal_payload(item.precio_shein_eeuu) if item.precio_shein_eeuu is not None else "",
-            "Espana": decimal_payload(item.precio_shein_espana) if item.precio_shein_espana is not None else "",
-            "Venezuela": decimal_payload(item.precio_shein_venezuela) if item.precio_shein_venezuela is not None else "",
-            "Colombia": decimal_payload(item.precio_shein_colombia) if item.precio_shein_colombia is not None else "",
-        },
-    }
-
-
-def pago_payload(pago):
-    return {
-        "id": pago.id,
-        "fecha": pago.fecha.isoformat(),
-        "fechaDisplay": pago.fecha.strftime("%d/%m/%Y"),
-        "monto": decimal_payload(pago.monto),
-        "metodo": pago.metodo or "",
-        "nota": pago.nota or "",
-        "urls": {
-            "editar": reverse("pago_editar", args=[pago.id]),
-            "eliminar": reverse("pago_eliminar", args=[pago.id]),
-        },
-    }
-
-
-def sincronizar_pago_caja(pago):
-    descripcion = f"Cobro a {pago.orden.cliente.nombre} - Orden #{pago.orden.pk}"
-    movimiento, _created = MovimientoCaja.objects.get_or_create(
-        pago=pago,
-        defaults={
-            "fecha": pago.fecha,
-            "tipo": MovimientoCaja.Tipo.INGRESO,
-            "categoria": MovimientoCaja.Categoria.COBRO_CLIENTE,
-            "descripcion": descripcion,
-            "monto": pago.monto,
-        },
-    )
-    movimiento.fecha = pago.fecha
-    movimiento.tipo = MovimientoCaja.Tipo.INGRESO
-    movimiento.categoria = MovimientoCaja.Categoria.COBRO_CLIENTE
-    movimiento.descripcion = descripcion
-    movimiento.monto = pago.monto
-    movimiento.save(update_fields=["fecha", "tipo", "categoria", "descripcion", "monto"])
-    return movimiento
-
-
-def movimiento_payload(movimiento):
-    editable = movimiento.pago_id is None
-    return {
-        "id": movimiento.id,
-        "fecha": movimiento.fecha.isoformat(),
-        "fechaDisplay": movimiento.fecha.strftime("%d/%m/%Y"),
-        "tipo": movimiento.tipo,
-        "tipoDisplay": movimiento.get_tipo_display(),
-        "categoria": movimiento.categoria,
-        "categoriaDisplay": movimiento.get_categoria_display(),
-        "descripcion": movimiento.descripcion,
-        "monto": decimal_payload(movimiento.monto),
-        "esPago": not editable,
-        "urls": {
-            "editar": reverse("movimiento_editar", args=[movimiento.id]) if editable else "",
-            "eliminar": reverse("movimiento_eliminar", args=[movimiento.id]) if editable else "",
-        },
-    }
-
-
-def cliente_payload(cliente):
-    ordenes = list(cliente.ordenes.all())
-    total_vendido = sum((orden.total_final for orden in ordenes), Decimal("0.00"))
-    saldo_pendiente = sum((orden.saldo_pendiente for orden in ordenes), Decimal("0.00"))
-    return {
-        "id": cliente.id,
-        "nombre": cliente.nombre,
-        "telefono": cliente.telefono or "",
-        "notas": cliente.notas or "",
-        "creado": cliente.creado.isoformat(),
-        "creadoDisplay": cliente.creado.strftime("%d/%m/%Y"),
-        "ordenesCount": len(ordenes),
-        "totalVendido": decimal_payload(total_vendido),
-        "saldoPendiente": decimal_payload(saldo_pendiente),
-        "url": cliente.get_absolute_url(),
-    }
-
-
-def cliente_detalle_payload(cliente):
-    ordenes = list(cliente.ordenes.prefetch_related("items", "pagos").all())
-    total_vendido = sum((orden.total_final for orden in ordenes), Decimal("0.00"))
-    total_pagado = sum((orden.total_pagado for orden in ordenes), Decimal("0.00"))
-    saldo_pendiente = sum((orden.saldo_pendiente for orden in ordenes), Decimal("0.00"))
-    return {
-        **cliente_payload(cliente),
-        "totalPagado": decimal_payload(total_pagado),
-        "totalVendido": decimal_payload(total_vendido),
-        "saldoPendiente": decimal_payload(saldo_pendiente),
-        "urls": {
-            "clientes": reverse("clientes"),
-            "nuevaOrden": reverse("orden_crear"),
-        },
-        "ordenes": [orden_payload(orden) for orden in ordenes],
-    }
+from .forms import ClienteForm, EnvioForm, ItemFormSet, ItemPedidoForm, MovimientoCajaForm, OrdenForm, PagoForm
+from .models import Cliente, Envio, ItemPedido, MovimientoCaja, Orden, OrdenEnvio, Pago
+from .payloads import (
+    cliente_detalle_payload,
+    cliente_payload,
+    dashboard_context,
+    envio_payload,
+    movimiento_payload,
+    orden_detalle_payload,
+    orden_envio_form_payload,
+    orden_payload,
+)
+from .reports import build_cliente_report_pdf
+from .services.caja import sincronizar_envio_caja, sincronizar_pago_caja, total_movimientos
+from .services.envios import recalcular_flete_envio, repartir_flete, sincronizar_estado_ordenes_envio
+from .services.scraping import find_product_image_url, is_safe_public_url
+from .utils import decimal_payload, parse_date_param
 
 
 @login_required
 def dashboard(request):
-    today = timezone.localdate()
-    first_day = today.replace(day=1)
-    last_day = today.replace(day=monthrange(today.year, today.month)[1])
-    pagos_mes = Pago.objects.filter(fecha__range=(first_day, last_day)).aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
-    egresos_mes = MovimientoCaja.objects.filter(
-        tipo=MovimientoCaja.Tipo.EGRESO,
-        fecha__range=(first_day, last_day),
-    ).aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
-    movimientos = MovimientoCaja.objects.all()
-    ingresos = movimientos.filter(tipo=MovimientoCaja.Tipo.INGRESO).aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
-    egresos = movimientos.filter(tipo=MovimientoCaja.Tipo.EGRESO).aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
-    ordenes = list(Orden.objects.select_related("cliente").prefetch_related("items", "pagos")[:12])
-    pendientes = sum((orden.saldo_pendiente for orden in Orden.objects.prefetch_related("items", "pagos")), Decimal("0.00"))
-    ganancia_estimada = sum((orden.ganancia_estimada for orden in Orden.objects.prefetch_related("items")), Decimal("0.00"))
-    ganancia_real = sum((orden.ganancia_real for orden in Orden.objects.prefetch_related("items")), Decimal("0.00"))
-    pedidos_activos = Orden.objects.exclude(estado__in=[Orden.Estado.ENTREGADA, Orden.Estado.CANCELADA]).count()
-    dashboard_payload = {
-        "pedidosActivos": pedidos_activos,
-        "cobradoMes": decimal_payload(pagos_mes),
-        "egresosMes": decimal_payload(egresos_mes),
-        "saldoCaja": decimal_payload(ingresos - egresos),
-        "pendienteCobrar": decimal_payload(pendientes),
-        "gananciaEstimada": decimal_payload(ganancia_estimada),
-        "gananciaReal": decimal_payload(ganancia_real),
-        "urls": {
-            "nuevaOrden": reverse("orden_crear"),
-            "ordenes": reverse("ordenes"),
-        },
-        "ordenes": [
-            orden_payload(orden)
-            for orden in ordenes
-        ],
-    }
-    return render(request, "core/dashboard.html", {
-        "ordenes": ordenes,
-        "pedidos_activos": pedidos_activos,
-        "cobrado_mes": pagos_mes,
-        "egresos_mes": egresos_mes,
-        "saldo_caja": ingresos - egresos,
-        "pendiente_cobrar": pendientes,
-        "ganancia_estimada": ganancia_estimada,
-        "ganancia_real": ganancia_real,
-        "dashboard_payload": dashboard_payload,
-    })
+    return render(request, "core/dashboard.html", dashboard_context(request))
 
 
 @login_required
@@ -424,7 +79,13 @@ def cliente_detalle(request, pk):
 @login_required
 def ordenes(request):
     q = request.GET.get("q", "").strip()
+    fecha_desde = parse_date_param(request.GET.get("desde"))
+    fecha_hasta = parse_date_param(request.GET.get("hasta"))
     ordenes_qs = Orden.objects.select_related("cliente").prefetch_related("items", "pagos")
+    if fecha_desde:
+        ordenes_qs = ordenes_qs.filter(fecha__gte=fecha_desde)
+    if fecha_hasta:
+        ordenes_qs = ordenes_qs.filter(fecha__lte=fecha_hasta)
     if q:
         ordenes_qs = ordenes_qs.filter(
             Q(cliente__nombre__icontains=q)
@@ -434,6 +95,8 @@ def ordenes(request):
     ordenes_list = list(ordenes_qs)
     ordenes_payload = {
         "q": q,
+        "fechaDesde": fecha_desde.isoformat() if fecha_desde else "",
+        "fechaHasta": fecha_hasta.isoformat() if fecha_hasta else "",
         "urls": {
             "nuevaOrden": reverse("orden_crear"),
         },
@@ -484,35 +147,17 @@ def extraer_imagen_producto(request):
 
 @login_required
 def orden_detalle(request, pk):
-    orden = get_object_or_404(Orden.objects.select_related("cliente").prefetch_related("items", "pagos"), pk=pk)
+    orden = get_object_or_404(
+        Orden.objects.select_related("cliente", "envio_asignado__envio").prefetch_related("items", "pagos"),
+        pk=pk,
+    )
     pago_form = PagoForm(initial={"fecha": date.today()})
     item_form = ItemPedidoForm()
-    orden_detalle_payload = {
-        **orden_payload(orden),
-        "clienteUrl": orden.cliente.get_absolute_url(),
-        "csrfToken": get_token(request),
-        "inicialSugerida": decimal_payload(orden.inicial_sugerida),
-        "gananciaEstimada": decimal_payload(orden.ganancia_estimada),
-        "gananciaReal": decimal_payload(orden.ganancia_real),
-        "notas": orden.notas,
-        "urls": {
-            "editar": reverse("orden_editar", args=[orden.id]),
-            "pdf": reverse("reporte_cliente_pdf", args=[orden.id]),
-            "ordenes": reverse("ordenes"),
-            "cambiarEstado": reverse("orden_cambiar_estado", args=[orden.id]),
-        },
-        "estados": [
-            {"value": value, "label": label}
-            for value, label in Orden.Estado.choices
-        ],
-        "items": [item_payload(item) for item in orden.items.all()],
-        "pagos": [pago_payload(pago) for pago in orden.pagos.all()],
-    }
     return render(request, "core/orden_detalle.html", {
         "orden": orden,
         "pago_form": pago_form,
         "item_form": item_form,
-        "orden_detalle_payload": orden_detalle_payload,
+        "orden_detalle_payload": orden_detalle_payload(orden, get_token(request)),
     })
 
 
@@ -635,18 +280,38 @@ def pago_eliminar(request, pk):
 
 @login_required
 def caja(request):
+    fecha_desde = parse_date_param(request.GET.get("desde"))
+    fecha_hasta = parse_date_param(request.GET.get("hasta"))
     form = MovimientoCajaForm(request.POST or None, initial={"fecha": date.today()})
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, "Movimiento de caja guardado.")
         return redirect("caja")
-    movimientos = MovimientoCaja.objects.all()[:80]
-    ingresos = MovimientoCaja.objects.filter(tipo=MovimientoCaja.Tipo.INGRESO).aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
-    egresos = MovimientoCaja.objects.filter(tipo=MovimientoCaja.Tipo.EGRESO).aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
+    movimientos_qs = MovimientoCaja.objects.all()
+    movimientos_filtrados_qs = movimientos_qs
+    if fecha_desde:
+        movimientos_filtrados_qs = movimientos_filtrados_qs.filter(fecha__gte=fecha_desde)
+    if fecha_hasta:
+        movimientos_filtrados_qs = movimientos_filtrados_qs.filter(fecha__lte=fecha_hasta)
+    movimientos = list(movimientos_qs)
+    ingresos, egresos, saldo_total = total_movimientos(movimientos_qs)
+    ingresos_filtrados, egresos_filtrados, movimiento_periodo = total_movimientos(movimientos_filtrados_qs)
+    if fecha_desde:
+        _ingresos_anteriores, _egresos_anteriores, saldo_inicial = total_movimientos(movimientos_qs.filter(fecha__lt=fecha_desde))
+    else:
+        saldo_inicial = Decimal("0.00")
+    saldo_final = saldo_inicial + movimiento_periodo
     caja_payload = {
         "ingresos": decimal_payload(ingresos),
         "egresos": decimal_payload(egresos),
-        "saldo": decimal_payload(ingresos - egresos),
+        "saldo": decimal_payload(saldo_total),
+        "ingresosFiltrados": decimal_payload(ingresos_filtrados),
+        "egresosFiltrados": decimal_payload(egresos_filtrados),
+        "saldoInicial": decimal_payload(saldo_inicial),
+        "movimientoPeriodo": decimal_payload(movimiento_periodo),
+        "saldoFinal": decimal_payload(saldo_final),
+        "fechaDesde": fecha_desde.isoformat() if fecha_desde else "",
+        "fechaHasta": fecha_hasta.isoformat() if fecha_hasta else "",
         "csrfToken": get_token(request),
         "movimientos": [movimiento_payload(movimiento) for movimiento in movimientos],
         "tipos": [
@@ -659,7 +324,12 @@ def caja(request):
         "movimientos": movimientos,
         "ingresos": ingresos,
         "egresos": egresos,
-        "saldo": ingresos - egresos,
+        "saldo": saldo_total,
+        "ingresos_filtrados": ingresos_filtrados,
+        "egresos_filtrados": egresos_filtrados,
+        "saldo_inicial": saldo_inicial,
+        "movimiento_periodo": movimiento_periodo,
+        "saldo_final": saldo_final,
         "caja_payload": caja_payload,
     })
 
@@ -669,6 +339,9 @@ def movimiento_editar(request, pk):
     movimiento = get_object_or_404(MovimientoCaja, pk=pk)
     if movimiento.pago_id is not None:
         messages.error(request, "Los movimientos de pagos se editan desde la orden.")
+        return redirect("caja")
+    if hasattr(movimiento, "envio"):
+        messages.error(request, "Los fletes de envios se editan desde el envio.")
         return redirect("caja")
     form = MovimientoCajaForm(request.POST or None, instance=movimiento)
     if request.method == "POST" and form.is_valid():
@@ -690,133 +363,152 @@ def movimiento_eliminar(request, pk):
     if movimiento.pago_id is not None:
         messages.error(request, "Los movimientos de pagos se eliminan desde la orden.")
         return redirect("caja")
+    if hasattr(movimiento, "envio"):
+        messages.error(request, "Los fletes de envios se eliminan desde el envio.")
+        return redirect("caja")
     movimiento.delete()
     messages.success(request, "Movimiento de caja eliminado.")
     return redirect("caja")
 
 
 @login_required
+def envios(request):
+    envios_list = list(
+        Envio.objects.prefetch_related("ordenes_envio__orden__cliente", "ordenes_envio__orden__items", "ordenes_envio__orden__pagos")
+    )
+    ordenes_disponibles = list(
+        Orden.objects.filter(estado=Orden.Estado.COMPRADA)
+        .select_related("cliente")
+        .prefetch_related("items", "pagos")
+    )
+    payload = {
+        "urls": {
+            "nuevoEnvio": reverse("envio_crear"),
+        },
+        "envios": [envio_payload(envio) for envio in envios_list],
+        "ordenesDisponibles": [orden_payload(orden) for orden in ordenes_disponibles],
+    }
+    return render(request, "core/envios.html", {
+        "envios_payload": payload,
+    })
+
+
+@login_required
+def envio_crear(request):
+    ordenes_disponibles = list(
+        Orden.objects.filter(estado=Orden.Estado.COMPRADA)
+        .select_related("cliente")
+        .prefetch_related("items", "pagos")
+    )
+    today = date.today()
+    form = EnvioForm(request.POST or None, initial={
+        "estado": Envio.Estado.EN_TRANSITO,
+        "fecha_salida": today,
+        "fecha_pago_flete": today,
+        "periodo_utilidad": today.replace(day=1),
+    })
+    if request.method == "POST" and form.is_valid():
+        orden_ids = request.POST.getlist("ordenes")
+        ordenes_seleccionadas = [
+            orden for orden in ordenes_disponibles
+            if str(orden.id) in orden_ids
+        ]
+        if not ordenes_seleccionadas:
+            messages.error(request, "Selecciona al menos una orden comprada para crear el envio.")
+        else:
+            with transaction.atomic():
+                envio = form.save()
+                asignaciones = repartir_flete(ordenes_seleccionadas, envio.costo_flete)
+                for orden in ordenes_seleccionadas:
+                    OrdenEnvio.objects.create(
+                        envio=envio,
+                        orden=orden,
+                        costo_flete_asignado=asignaciones[orden.id],
+                    )
+                    orden.estado = Orden.Estado.EN_TRANSITO
+                    orden.save(update_fields=["estado", "actualizado"])
+                sincronizar_envio_caja(envio)
+            messages.success(request, "Envio creado, flete repartido y ordenes marcadas en transito.")
+            return redirect(envio)
+    return render(request, "core/envio_form.html", {
+        "form": form,
+        "ordenes": [orden_envio_form_payload(orden) for orden in ordenes_disponibles],
+    })
+
+
+@login_required
+def envio_detalle(request, pk):
+    envio = get_object_or_404(
+        Envio.objects.prefetch_related("ordenes_envio__orden__cliente", "ordenes_envio__orden__items", "ordenes_envio__orden__pagos"),
+        pk=pk,
+    )
+    return render(request, "core/envio_detalle.html", {
+        "envio": envio,
+        "envio_payload": envio_payload(envio),
+    })
+
+
+@login_required
+def envio_editar(request, pk):
+    envio = get_object_or_404(Envio.objects.prefetch_related("ordenes_envio__orden__items"), pk=pk)
+    form = EnvioForm(request.POST or None, instance=envio)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            envio = form.save()
+            recalcular_flete_envio(envio)
+            sincronizar_envio_caja(envio)
+            ordenes_actualizadas = sincronizar_estado_ordenes_envio(envio)
+        messages.success(request, f"Envio actualizado. Ordenes sincronizadas: {ordenes_actualizadas}.")
+        return redirect(envio)
+    return render(request, "core/form.html", {
+        "form": form,
+        "title": f"Editar envio - {envio.nombre}",
+        "button": "Guardar envio",
+    })
+
+
+@login_required
+def envio_cambiar_estado(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "Metodo no permitido."}, status=405)
+    envio = get_object_or_404(
+        Envio.objects.prefetch_related("ordenes_envio__orden__cliente", "ordenes_envio__orden__items", "ordenes_envio__orden__pagos"),
+        pk=pk,
+    )
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Solicitud invalida."}, status=400)
+    nuevo_estado = payload.get("estado")
+    estados_validos = {value for value, _label in Envio.Estado.choices}
+    if nuevo_estado not in estados_validos:
+        return JsonResponse({"ok": False, "error": "Estado invalido."}, status=400)
+    with transaction.atomic():
+        envio.estado = nuevo_estado
+        update_fields = ["estado"]
+        if nuevo_estado == Envio.Estado.EN_TRANSITO and envio.fecha_salida is None:
+            envio.fecha_salida = timezone.localdate()
+            update_fields.append("fecha_salida")
+        if nuevo_estado == Envio.Estado.RECIBIDO and envio.fecha_llegada is None:
+            envio.fecha_llegada = timezone.localdate()
+            update_fields.append("fecha_llegada")
+        envio.save(update_fields=update_fields)
+        ordenes_actualizadas = sincronizar_estado_ordenes_envio(envio)
+    envio.refresh_from_db()
+    envio = Envio.objects.prefetch_related("ordenes_envio__orden__cliente", "ordenes_envio__orden__items", "ordenes_envio__orden__pagos").get(pk=envio.pk)
+    return JsonResponse({
+        "ok": True,
+        "estado": envio.estado,
+        "estadoDisplay": envio.get_estado_display(),
+        "fechaSalidaDisplay": envio.fecha_salida.strftime("%d/%m/%Y") if envio.fecha_salida else "-",
+        "fechaLlegadaDisplay": envio.fecha_llegada.strftime("%d/%m/%Y") if envio.fecha_llegada else "-",
+        "ordenesActualizadas": ordenes_actualizadas,
+        "ordenes": [orden_payload(relacion.orden) for relacion in envio.ordenes_envio.all()],
+    })
+
+
+@login_required
 def reporte_cliente_pdf(request, pk):
     orden = get_object_or_404(Orden.objects.select_related("cliente").prefetch_related("items", "pagos"), pk=pk)
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=letter,
-        rightMargin=32,
-        leftMargin=32,
-        topMargin=32,
-        bottomMargin=32,
-        pageCompression=0,
-    )
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(
-        name="BrandTitle",
-        parent=styles["Title"],
-        textColor=colors.HexColor("#101828"),
-        fontSize=20,
-        leading=24,
-        spaceAfter=8,
-    ))
-    styles.add(ParagraphStyle(
-        name="Muted",
-        parent=styles["Normal"],
-        textColor=colors.HexColor("#667085"),
-        fontSize=9,
-        leading=12,
-    ))
-    styles.add(ParagraphStyle(
-        name="TableText",
-        parent=styles["BodyText"],
-        fontSize=9,
-        leading=12,
-    ))
-
-    header = Table([
-        [
-            Paragraph("Estefy Fashion", styles["BrandTitle"]),
-            Paragraph(f"Pedido #{orden.pk}", styles["BrandTitle"]),
-        ],
-        [
-            Paragraph(f"Cliente: {orden.cliente.nombre}", styles["Normal"]),
-            Paragraph(f"Estado: {orden.get_estado_display()}", styles["Normal"]),
-        ],
-        [
-            Paragraph(f"Fecha: {orden.fecha.strftime('%d/%m/%Y')}", styles["Muted"]),
-            Paragraph("Reporte para el cliente", styles["Muted"]),
-        ],
-    ], colWidths=[255, 255])
-    header.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
-        ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#d9dee8")),
-        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#e5e7eb")),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 12),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
-        ("TOPPADDING", (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-    ]))
-    story = [
-        header,
-        Spacer(1, 16),
-    ]
-
-    rows = [["Imagen", "Producto", "Precio"]]
-    for item in orden.items.all():
-        product_cell = "Sin imagen"
-        if item.imagen:
-            try:
-                product_cell = Image(item.imagen.path, width=58, height=58)
-            except Exception:
-                product_cell = "Imagen cargada"
-        elif item.imagen_url:
-            product_cell = "Imagen referencial"
-        description = item.descripcion
-        if item.sku:
-            description = f"{description}<br/><font color='#667085'>SKU: {item.sku}</font>"
-        rows.append([
-            product_cell,
-            Paragraph(description, styles["TableText"]),
-            f"USD {item.precio_final:.2f}",
-        ])
-
-    table = Table(rows, colWidths=[80, 330, 100], repeatRows=1)
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e4f4f3")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#101828")),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#d9dee8")),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("ALIGN", (2, 1), (2, -1), "RIGHT"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-    ]))
-    story.extend([table, Spacer(1, 18)])
-
-    summary = [
-        ["Total", f"USD {orden.total_final:.2f}"],
-        ["Inicial sugerida", f"USD {orden.inicial_sugerida:.2f}"],
-        ["Pagado", f"USD {orden.total_pagado:.2f}"],
-        ["Saldo pendiente", f"USD {orden.saldo_pendiente:.2f}"],
-    ]
-    summary_table = Table(summary, colWidths=[360, 150], hAlign="RIGHT")
-    summary_table.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#d9dee8")),
-        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#fef3c7")),
-        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-    ]))
-    story.extend([
-        summary_table,
-    ])
-    doc.build(story)
-    buffer.seek(0)
+    buffer = build_cliente_report_pdf(orden)
     return FileResponse(buffer, as_attachment=True, filename=f"reporte-orden-{orden.pk}.pdf")
-
-# Create your views here.

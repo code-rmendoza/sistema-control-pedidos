@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Envios{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{% static 'frontend/envios.css' %}">
+{% endblock %}
+{% block content %}
+{{ envios_payload|json_script:"envios-data" }}
+<div id="envios-root">
+  <div class="card">Cargando envios...</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{% static 'frontend/envios.js' %}"></script>
+{% endblock %}

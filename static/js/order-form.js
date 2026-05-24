@@ -223,15 +223,22 @@
 
       const price = numberFrom(item.querySelector('input[name$="-precio_final"]'));
       const estimatedCost = numberFrom(item.querySelector('input[name$="-costo_estimado"]'));
-      const profit = price - estimatedCost;
+      const realCostInput = item.querySelector('input[name$="-costo_real"]');
+      const hasRealCost = Boolean(realCostInput && realCostInput.value.trim());
+      const usedCost = hasRealCost ? numberFrom(realCostInput) : estimatedCost;
+      const profit = price - usedCost;
       const profitNode = item.querySelector("[data-item-profit]");
+      const profitLabel = item.querySelector("[data-item-profit-label]");
       if (profitNode) {
         profitNode.textContent = money.format(profit);
+      }
+      if (profitLabel) {
+        profitLabel.textContent = hasRealCost ? "Ganancia real" : "Ganancia estimada";
       }
 
       if (!isDeleted && (description && description.value.trim())) {
         total += price;
-        cost += estimatedCost;
+        cost += usedCost;
         count += 1;
       }
     });

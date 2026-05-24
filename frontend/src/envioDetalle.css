@@ -1,0 +1,226 @@
+.shipment-app {
+  display: grid;
+  gap: 22px;
+}
+
+.shipment-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 26px;
+  color: white;
+  background: linear-gradient(120deg, #101828, #116466);
+  border-radius: 8px;
+}
+
+.shipment-back {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.shipment-header h1 {
+  color: white;
+  font-size: 34px;
+}
+
+.shipment-header p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 0;
+}
+
+.shipment-header span {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.shipment-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.shipment-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  color: #101828;
+  background: var(--accent);
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.shipment-action--light {
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+}
+
+.shipment-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.shipment-status-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 280px) auto minmax(180px, 1fr);
+  gap: 14px;
+  align-items: end;
+  padding: 16px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+}
+
+.shipment-status-panel span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.shipment-status-panel strong {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+}
+
+.shipment-status-panel label {
+  margin: 0;
+}
+
+.shipment-status-panel button {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.shipment-status-panel p {
+  min-height: 20px;
+  margin: 0 0 9px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.shipment-status-ok {
+  color: var(--ok);
+}
+
+.shipment-status-error {
+  color: var(--danger);
+}
+
+.shipment-metric {
+  display: grid;
+  gap: 10px;
+  min-height: 112px;
+  padding: 18px;
+  background: white;
+  border: 1px solid var(--line);
+  border-left: 4px solid #667085;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.shipment-metric span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.shipment-metric strong {
+  align-self: end;
+  font-size: 24px;
+}
+
+.shipment-metric--income,
+.shipment-metric--profit {
+  border-left-color: var(--ok);
+}
+
+.shipment-metric--expense {
+  border-left-color: #d18b00;
+}
+
+.shipment-panel {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.shipment-panel__head {
+  padding: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.shipment-panel__head h2,
+.shipment-panel__head p {
+  margin: 0;
+}
+
+.shipment-panel__head p {
+  margin-top: 5px;
+  color: var(--muted);
+}
+
+.shipment-table-wrap {
+  overflow-x: auto;
+}
+
+.shipment-table th {
+  background: #f2f5f9;
+}
+
+@media (max-width: 1100px) {
+  .shipment-metrics,
+  .shipment-status-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .shipment-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .shipment-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .shipment-metrics,
+  .shipment-status-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shipment-header {
+  color: var(--ink);
+  background: white;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
+  box-shadow: var(--shadow-soft);
+}
+
+.shipment-back,
+.shipment-header span {
+  color: var(--muted);
+}
+
+.shipment-header h1 {
+  color: var(--ink);
+}
+
+.shipment-panel,
+.shipment-metric {
+  box-shadow: var(--shadow-soft);
+}

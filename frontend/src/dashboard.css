@@ -8,29 +8,59 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 18px;
-  padding: 28px;
-  min-height: 172px;
-  color: white;
-  background:
-    linear-gradient(120deg, rgba(16, 24, 40, 0.94), rgba(17, 100, 102, 0.86)),
-    url("https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1600&q=80");
-  background-size: cover;
-  background-position: center;
+  padding: 24px;
+  color: var(--ink);
+  background: white;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
   border-radius: 8px;
-  overflow: hidden;
+  box-shadow: var(--shadow-soft);
 }
 
 .react-hero p {
   margin: 0 0 8px;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--muted);
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .react-hero h1 {
-  color: white;
+  color: var(--ink);
   font-size: 34px;
+}
+
+.react-month-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.react-month-filter label {
+  margin: 0;
+}
+
+.react-month-filter span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.react-month-filter input,
+.react-month-filter button {
+  min-height: 38px;
+}
+
+.react-month-filter button {
+  padding: 8px 12px;
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+  border-radius: 6px;
+  font-weight: 800;
 }
 
 .react-primary-action {
@@ -51,11 +81,15 @@
   gap: 14px;
 }
 
+.react-metrics--featured {
+  grid-template-columns: 1.25fr 1fr 1fr 1fr;
+}
+
 .react-metric {
   display: grid;
-  gap: 10px;
-  min-height: 118px;
-  padding: 18px;
+  gap: 8px;
+  min-height: 108px;
+  padding: 16px;
   background: white;
   border: 1px solid var(--line);
   border-left: 4px solid #667085;
@@ -72,7 +106,14 @@
 .react-metric strong {
   align-self: end;
   color: var(--ink);
-  font-size: 25px;
+  font-size: 24px;
+}
+
+.react-metric small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .react-metric--income,
@@ -81,16 +122,107 @@
   border-left-color: var(--ok);
 }
 
-.react-metric--pending {
+.react-metric--pending,
+.react-metric--warning {
   border-left-color: #d18b00;
 }
 
-.react-metric--expense {
+.react-metric--expense,
+.react-metric--critical {
   border-left-color: var(--danger);
+}
+
+.react-metric--excellent {
+  border-left-color: #0b8f62;
+  background: linear-gradient(180deg, #ffffff 0%, #f3fbf7 100%);
+}
+
+.react-metric--warning {
+  background: linear-gradient(180deg, #ffffff 0%, #fff8e8 100%);
+}
+
+.react-metric--critical {
+  background: linear-gradient(180deg, #ffffff 0%, #fff3f0 100%);
 }
 
 .react-metric--count {
   border-left-color: var(--brand);
+}
+
+.react-stat-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.react-stat-section {
+  padding: 16px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 18px 45px rgba(16, 24, 40, 0.05);
+}
+
+.react-stat-section h2 {
+  margin: 0 0 14px;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.react-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.react-mini-stat {
+  min-height: 82px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e6ebf2;
+  border-top: 3px solid #667085;
+  border-radius: 8px;
+}
+
+.react-mini-stat span,
+.react-mini-stat small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.react-mini-stat strong {
+  display: block;
+  margin-top: 10px;
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.react-mini-stat--income,
+.react-mini-stat--cash,
+.react-mini-stat--profit {
+  border-top-color: var(--ok);
+}
+
+.react-mini-stat--pending,
+.react-mini-stat--warning {
+  border-top-color: #d18b00;
+}
+
+.react-mini-stat--expense,
+.react-mini-stat--critical {
+  border-top-color: var(--danger);
+}
+
+.react-mini-stat--excellent {
+  border-top-color: #0b8f62;
+}
+
+.react-mini-stat--count {
+  border-top-color: var(--brand);
 }
 
 .react-panel {
@@ -162,8 +294,13 @@
 }
 
 @media (max-width: 1100px) {
-  .react-metrics {
+  .react-metrics,
+  .react-metrics--featured {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .react-stat-layout {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -174,7 +311,9 @@
     flex-direction: column;
   }
 
-  .react-metrics {
+  .react-metrics,
+  .react-metrics--featured,
+  .react-stat-grid {
     grid-template-columns: 1fr;
   }
 }

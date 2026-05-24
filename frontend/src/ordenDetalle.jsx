@@ -79,6 +79,8 @@ function OrdenDetalle({ data }) {
     { label: "Saldo", value: money.format(Number(data.saldoPendiente)), tone: saldoTone },
     { label: "Ganancia estimada", value: money.format(Number(data.gananciaEstimada)), tone: "profit" },
     { label: "Ganancia real", value: money.format(Number(data.gananciaReal)), tone: "profit" },
+    { label: "Flete asignado", value: money.format(Number(data.fleteAsignado)), tone: "pending" },
+    { label: "Utilidad neta", value: money.format(Number(data.utilidadRealNeta)), tone: "profit" },
   ];
 
   const saveEstado = async () => {
@@ -118,6 +120,7 @@ function OrdenDetalle({ data }) {
             <a href={data.clienteUrl}>{data.cliente}</a>
             <span>{estadoDisplay}</span>
             <span>{data.fechaDisplay}</span>
+            {data.envio ? <a href={data.envio.url}>{data.envio.nombre}</a> : null}
           </p>
         </div>
         <div className="detail-actions">

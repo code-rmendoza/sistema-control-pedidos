@@ -41,7 +41,7 @@
 
 .orders-toolbar {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 240px;
+  grid-template-columns: minmax(220px, 1fr) 220px 180px 180px;
   gap: 14px;
   padding: 16px;
   background: white;
@@ -180,4 +180,32 @@
   .orders-metrics {
     grid-template-columns: 1fr;
   }
+}
+
+.orders-header {
+  color: var(--ink);
+  background: white;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
+  box-shadow: var(--shadow-soft);
+}
+
+.orders-header p {
+  color: var(--muted);
+}
+
+.orders-header h1 {
+  color: var(--ink);
+}
+
+.orders-action {
+  color: #101828;
+  background: var(--accent);
+  border-radius: 8px;
+}
+
+.orders-toolbar,
+.orders-panel,
+.orders-metric {
+  box-shadow: var(--shadow-soft);
 }

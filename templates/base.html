@@ -4,23 +4,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Importaciones{% endblock %}</title>
+  <title>{% block title %}Estefy Fashion{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   {% block styles %}{% endblock %}
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand">Importaciones</div>
+      <div class="brand">
+        <span class="brand-mark">EF</span>
+        <span>
+          <strong>Estefy Fashion</strong>
+          <small>Control de pedidos</small>
+        </span>
+      </div>
       <nav class="nav">
-        <a href="{% url 'dashboard' %}">Dashboard</a>
-        <a href="{% url 'ordenes' %}">Ordenes</a>
-        <a href="{% url 'clientes' %}">Clientes</a>
-        <a href="{% url 'caja' %}">Caja</a>
-        <a href="{% url 'admin:index' %}">Admin</a>
+        <a class="{% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" href="{% url 'dashboard' %}"><span>Panel</span></a>
+        <a class="{% if 'orden' in request.resolver_match.url_name or 'item' in request.resolver_match.url_name or 'pago' in request.resolver_match.url_name %}is-active{% endif %}" href="{% url 'ordenes' %}"><span>Ordenes</span></a>
+        <a class="{% if 'envio' in request.resolver_match.url_name %}is-active{% endif %}" href="{% url 'envios' %}"><span>Envios</span></a>
+        <a class="{% if 'cliente' in request.resolver_match.url_name %}is-active{% endif %}" href="{% url 'clientes' %}"><span>Clientes</span></a>
+        <a class="{% if 'caja' in request.resolver_match.url_name or 'movimiento' in request.resolver_match.url_name %}is-active{% endif %}" href="{% url 'caja' %}"><span>Caja</span></a>
+        <a href="{% url 'admin:index' %}"><span>Admin</span></a>
         <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}
-          <button class="logout-button" type="submit">Salir</button>
+          <button class="logout-button" type="submit"><span>Salir</span></button>
         </form>
       </nav>
     </aside>

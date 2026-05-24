@@ -1,9 +1,9 @@
-.clients-app {
+.ship-app {
   display: grid;
   gap: 22px;
 }
 
-.clients-header {
+.ship-header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -14,7 +14,7 @@
   border-radius: 8px;
 }
 
-.clients-header p {
+.ship-header p {
   margin: 0 0 8px;
   color: rgba(255, 255, 255, 0.78);
   font-size: 13px;
@@ -22,12 +22,12 @@
   text-transform: uppercase;
 }
 
-.clients-header h1 {
+.ship-header h1 {
   color: white;
   font-size: 34px;
 }
 
-.clients-action {
+.ship-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -39,36 +39,13 @@
   font-weight: 800;
 }
 
-.clients-toolbar {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) 220px;
-  gap: 14px;
-  padding: 16px;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.clients-toolbar label {
-  margin: 0;
-}
-
-.clients-toolbar span {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.clients-metrics {
+.ship-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
 
-.clients-metric {
+.ship-metric {
   display: grid;
   gap: 10px;
   min-height: 112px;
@@ -80,107 +57,89 @@
   box-shadow: var(--shadow);
 }
 
-.clients-metric span {
+.ship-metric span {
   color: var(--muted);
   font-size: 13px;
   font-weight: 800;
 }
 
-.clients-metric strong {
+.ship-metric strong {
   align-self: end;
   font-size: 24px;
 }
 
-.clients-metric--count,
-.clients-metric--orders {
+.ship-metric--count {
   border-left-color: var(--brand);
 }
 
-.clients-metric--income {
-  border-left-color: var(--ok);
-}
-
-.clients-metric--pending {
+.ship-metric--expense {
   border-left-color: #d18b00;
 }
 
-.clients-panel {
+.ship-metric--profit {
+  border-left-color: var(--ok);
+}
+
+.ship-panel {
   background: white;
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: var(--shadow);
 }
 
-.clients-panel__head {
+.ship-panel__head {
   padding: 20px;
   border-bottom: 1px solid var(--line);
 }
 
-.clients-panel__head h2,
-.clients-panel__head p {
+.ship-panel__head h2,
+.ship-panel__head p {
   margin: 0;
 }
 
-.clients-panel__head p {
+.ship-panel__head p {
   margin-top: 5px;
   color: var(--muted);
 }
 
-.clients-table-wrap {
+.ship-table-wrap {
   overflow-x: auto;
 }
 
-.clients-table {
-  border: 0;
-}
-
-.clients-table th {
+.ship-table th {
   background: #f2f5f9;
 }
 
-.clients-balance {
+.ship-status {
   display: inline-flex;
   align-items: center;
   min-height: 28px;
   padding: 5px 9px;
+  color: #2f4f4f;
+  background: #e4f4f3;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 800;
 }
 
-.clients-balance--paid {
-  color: var(--ok);
-  background: #dcfae6;
-}
-
-.clients-balance--pending {
-  color: #7a4b00;
-  background: #fff4d6;
-}
-
 @media (max-width: 1100px) {
-  .clients-metrics {
+  .ship-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
-  .clients-header,
-  .clients-toolbar {
+  .ship-header {
     align-items: stretch;
-    grid-template-columns: 1fr;
-  }
-
-  .clients-header {
     flex-direction: column;
   }
 
-  .clients-metrics {
+  .ship-metrics {
     grid-template-columns: 1fr;
   }
 }
 
-.clients-header {
+.ship-header {
   color: var(--ink);
   background: white;
   border: 1px solid var(--line);
@@ -188,22 +147,21 @@
   box-shadow: var(--shadow-soft);
 }
 
-.clients-header p {
+.ship-header p {
   color: var(--muted);
 }
 
-.clients-header h1 {
+.ship-header h1 {
   color: var(--ink);
 }
 
-.clients-action {
+.ship-action {
   color: #101828;
   background: var(--accent);
   border-radius: 8px;
 }
 
-.clients-toolbar,
-.clients-panel,
-.clients-metric {
+.ship-panel,
+.ship-metric {
   box-shadow: var(--shadow-soft);
 }

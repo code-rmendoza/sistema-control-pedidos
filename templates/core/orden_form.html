@@ -18,7 +18,7 @@
         <strong data-order-total>$0.00</strong>
       </div>
       <div>
-        <span>Costo estimado</span>
+        <span>Costo usado</span>
         <strong data-order-cost>$0.00</strong>
       </div>
       <div>
@@ -37,6 +37,7 @@
         </div>
         <div class="order-main-grid">
           <div class="field">{{ form.cliente.label_tag }}{{ form.cliente }}{{ form.cliente.errors }}</div>
+          <div class="field">{{ form.fecha.label_tag }}{{ form.fecha }}{{ form.fecha.errors }}</div>
           <div class="field">{{ form.estado.label_tag }}{{ form.estado }}{{ form.estado.errors }}</div>
           <div class="field">{{ form.inicial_sugerida.label_tag }}{{ form.inicial_sugerida }}{{ form.inicial_sugerida.errors }}</div>
           <div class="field order-field-wide">{{ form.notas.label_tag }}{{ form.notas }}{{ form.notas.errors }}</div>
@@ -99,7 +100,7 @@
               <div class="field">{{ item_form.costo_estimado.label_tag }}{{ item_form.costo_estimado }}{{ item_form.costo_estimado.errors }}</div>
               <div class="field">{{ item_form.costo_real.label_tag }}{{ item_form.costo_real }}{{ item_form.costo_real.errors }}</div>
               <div class="order-item-result">
-                <span>Ganancia estimada</span>
+                <span data-item-profit-label>Ganancia estimada</span>
                 <strong data-item-profit>$0.00</strong>
               </div>
             </div>
@@ -126,7 +127,7 @@
           <div><dt>Productos activos</dt><dd data-order-count>0</dd></div>
           <div><dt>Total</dt><dd data-order-total>$0.00</dd></div>
           <div><dt>Inicial sugerida</dt><dd data-order-initial>$0.00</dd></div>
-          <div><dt>Ganancia est.</dt><dd data-order-profit>$0.00</dd></div>
+          <div><dt>Ganancia</dt><dd data-order-profit>$0.00</dd></div>
         </dl>
         <div class="order-actions">
           <button type="submit">Guardar orden</button>
