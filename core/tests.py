@@ -1,7 +1,11 @@
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 from django.contrib.auth.models import User
+from django.core.management import call_command
 from django.test import Client as HttpClient
 from django.test import TestCase
 from django.urls import reverse
@@ -46,6 +50,14 @@ class ImportacionesTests(TestCase):
         self.assertIn("Costo usado", content)
         self.assertIn("data-item-profit-label", content)
         self.assertIn("Ganancia</dt>", content)
+
+    def test_backup_command_creates_zip_with_data_json(self):
+        with TemporaryDirectory() as tmp_dir:
+            call_command("backup_data", output_dir=tmp_dir)
+            backups = list(Path(tmp_dir).glob("backup-*.zip"))
+            self.assertEqual(len(backups), 1)
+            with ZipFile(backups[0]) as archive:
+                self.assertIn("data.json", archive.namelist())
 
     def test_create_order_keeps_historical_date(self):
         response = self.http.post(reverse("orden_crear"), {
